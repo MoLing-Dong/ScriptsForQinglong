@@ -1,0 +1,13 @@
+{
+  "name": "scriptsforqinglong",
+  "version": "1.0.0",
+  "description": "编写一些定时脚本使用",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "MOL",
+  "license": "ISC",
+  "dependencies": {
+    "axios": "^1.6.7"
+  }
+}
