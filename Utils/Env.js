@@ -1,10 +1,10 @@
 /**
-* @Created by Mol on 2024/02/27
-* @description 获取环境变量
-* @param {String} envName 环境变量名称
-*/
+ * @Created by Mol on 2024/02/27
+ * @description 获取环境变量
+ * @param {String} envName 环境变量名称
+ */
 
-module.exports = getEnv = function (envName) {
+export default function (envName) {
   envName = envName.toUpperCase().trim();
 
   let environmentVariable = [
@@ -119,4 +119,4 @@ module.exports = getEnv = function (envName) {
   }
 
   return environmentVariable;
-};
+}

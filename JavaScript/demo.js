@@ -1,18 +1,27 @@
-/*  */
-const $ = new Env("sushe");
+/* 
+description: 定时脚本测试模板
+author:MOL
+
+corn: 0 0 * * *  每天0点执行一次
+ */
+import getEnv from "../Utils/Env.js";
+import gotSend from "../Utils/got.js";
+const $ = new Env("测试项目");
 const uplower = "SU_SHE";
-const getEnv = $.isNode() && require("../Utils/Env.js");
 const taskList = getEnv(uplower);
 
 !(async () => {
-  taskList.forEach((item) => {
-    if (item) {
-      $.log("🔔 当前账号", `京东账号${item + 1}`);
-      console.log(item);
-    }
-  });
+  //   taskList.forEach((item) => {
+  //     if (item) {
+  //       $.log("===>>>>🔔 当前执行任务<<<<===", `账号${item + 1}`);
+  //       console.log(item);
+  //     }
+  //   });
+    let data = await gotSend("https://www.baidu.com", "GET");
+    console.log(data);
+    // $.log(data);
   //   $.msg("📢测试通知", "Hello World!!!");
-  $.log("📢测试通知", "Hello World!!!");
+//   $.log("📢测试通知", "Hello World!!!");
   $.done();
 })();
 
@@ -268,161 +277,6 @@ function Env(t, e) {
           !0)
         : (this.data && this.data[e]) || null;
     }
-
-    initGotEnv(t) {
-      (this.got = this.got ? this.got : require("got")),
-        (this.cktough = this.cktough ? this.cktough : require("tough-cookie")),
-        (this.ckjar = this.ckjar ? this.ckjar : new this.cktough.CookieJar()),
-        t &&
-          ((t.headers = t.headers ? t.headers : {}),
-          void 0 === t.headers.Cookie &&
-            void 0 === t.cookieJar &&
-            (t.cookieJar = this.ckjar));
-    }
-
-    get(t, e = () => {}) {
-      t.headers &&
-        (delete t.headers["Content-Type"], delete t.headers["Content-Length"]),
-        this.isSurge() || this.isLoon()
-          ? (this.isSurge() &&
-              this.isNeedRewrite &&
-              ((t.headers = t.headers || {}),
-              Object.assign(t.headers, {
-                "X-Surge-Skip-Scripting": !1,
-              })),
-            $httpClient.get(t, (t, s, i) => {
-              !t && s && ((s.body = i), (s.statusCode = s.status)), e(t, s, i);
-            }))
-          : this.isQuanX()
-          ? (this.isNeedRewrite &&
-              ((t.opts = t.opts || {}),
-              Object.assign(t.opts, {
-                hints: !1,
-              })),
-            $task.fetch(t).then(
-              (t) => {
-                const { statusCode: s, statusCode: i, headers: r, body: o } = t;
-                e(
-                  null,
-                  {
-                    status: s,
-                    statusCode: i,
-                    headers: r,
-                    body: o,
-                  },
-                  o
-                );
-              },
-              (t) => e(t)
-            ))
-          : this.isNode() &&
-            (this.initGotEnv(t),
-            this.got(t)
-              .on("redirect", (t, e) => {
-                try {
-                  if (t.headers["set-cookie"]) {
-                    const s = t.headers["set-cookie"]
-                      .map(this.cktough.Cookie.parse)
-                      .toString();
-                    s && this.ckjar.setCookieSync(s, null),
-                      (e.cookieJar = this.ckjar);
-                  }
-                } catch (t) {
-                  this.logErr(t);
-                }
-              })
-              .then(
-                (t) => {
-                  const {
-                    statusCode: s,
-                    statusCode: i,
-                    headers: r,
-                    body: o,
-                  } = t;
-                  e(
-                    null,
-                    {
-                      status: s,
-                      statusCode: i,
-                      headers: r,
-                      body: o,
-                    },
-                    o
-                  );
-                },
-                (t) => {
-                  const { message: s, response: i } = t;
-                  e(s, i, i && i.body);
-                }
-              ));
-    }
-
-    post(t, e = () => {}) {
-      if (
-        (t.body &&
-          t.headers &&
-          !t.headers["Content-Type"] &&
-          (t.headers["Content-Type"] = "application/x-www-form-urlencoded"),
-        t.headers && delete t.headers["Content-Length"],
-        this.isSurge() || this.isLoon())
-      )
-        this.isSurge() &&
-          this.isNeedRewrite &&
-          ((t.headers = t.headers || {}),
-          Object.assign(t.headers, {
-            "X-Surge-Skip-Scripting": !1,
-          })),
-          $httpClient.post(t, (t, s, i) => {
-            !t && s && ((s.body = i), (s.statusCode = s.status)), e(t, s, i);
-          });
-      else if (this.isQuanX())
-        (t.method = "POST"),
-          this.isNeedRewrite &&
-            ((t.opts = t.opts || {}),
-            Object.assign(t.opts, {
-              hints: !1,
-            })),
-          $task.fetch(t).then(
-            (t) => {
-              const { statusCode: s, statusCode: i, headers: r, body: o } = t;
-              e(
-                null,
-                {
-                  status: s,
-                  statusCode: i,
-                  headers: r,
-                  body: o,
-                },
-                o
-              );
-            },
-            (t) => e(t)
-          );
-      else if (this.isNode()) {
-        this.initGotEnv(t);
-        const { url: s, ...i } = t;
-        this.got.post(s, i).then(
-          (t) => {
-            const { statusCode: s, statusCode: i, headers: r, body: o } = t;
-            e(
-              null,
-              {
-                status: s,
-                statusCode: i,
-                headers: r,
-                body: o,
-              },
-              o
-            );
-          },
-          (t) => {
-            const { message: s, response: i } = t;
-            e(s, i, i && i.body);
-          }
-        );
-      }
-    }
-
     time(t, e = null) {
       const s = e ? new Date(e) : new Date();
       let i = {

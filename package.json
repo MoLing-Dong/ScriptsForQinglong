@@ -1,13 +1,22 @@
 {
-  "name": "scriptsforqinglong",
-  "version": "1.0.0",
-  "description": "编写一些定时脚本使用",
-  "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
-  },
-  "author": "MOL",
-  "license": "ISC",
-  "dependencies": {
-    "axios": "^1.6.7"
-  }
+    "name": "scriptsforqinglong",
+    "version": "1.0.0",
+    "description": "编写一些定时脚本使用",
+    "type": "module",
+    "scripts": {
+        "test": "echo \"Error: no test specified\" && exit 1",
+        "build": "webpack --config webpack.config.js --progress"
+    },
+    "author": "MOL",
+    "license": "ISC",
+    "dependencies": {
+        "axios": "^1.6.7",
+        "got": "^14.2.0"
+    },
+    "devDependencies": {
+        "glob": "^10.3.10",
+        "webpack": "^5.90.3",
+        "webpack-cli": "^5.1.4",
+        "webpack-node-externals": "^3.0.0"
+    }
 }
