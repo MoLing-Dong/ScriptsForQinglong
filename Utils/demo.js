@@ -1,5 +1,5 @@
 import { readdirSync, statSync } from "fs";
-import { join } from "path";
+import { join, extname, basename } from "path";
 
 function getAllFiles(dirPath, filesObject = {}) {
   const files = readdirSync(dirPath);
@@ -8,7 +8,9 @@ function getAllFiles(dirPath, filesObject = {}) {
     if (statSync(join(dirPath, file)).isDirectory()) {
       getAllFiles(join(dirPath, file), filesObject);
     } else {
-      filesObject[file] = dirPath+'/'+file;
+      const fileName = basename(file, extname(file)); // 去除文件扩展名部分
+
+      filesObject[fileName] = dirPath + "/" + file;
     }
   });
 
