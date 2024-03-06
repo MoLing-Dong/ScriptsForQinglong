@@ -1,8 +1,6 @@
-import path from "node:path";
-import { dirname } from "node:path";
-import { fileURLToPath } from "node:url";
 import { getAllFiles } from "./Utils/MultipleEntrances.js";
 import TerserPlugin from "terser-webpack-plugin";
+import webpack from "webpack";
 
 export default {
   target: "node",
@@ -17,7 +15,26 @@ export default {
     filename: "[name].b.js",
     chunkFormat: "module",
   },
+  optimization: {
+    minimize: true,
+    minimizer: [
+      new TerserPlugin({
+        terserOptions: {
+          output: {
+            // comments: false,
+          },
+        },
+        extractComments: false,
+      }),
+    ],
+  },
   resolve: {
     preferRelative: true,
   },
+  plugins: [
+    new webpack.BannerPlugin({
+      banner: "Your custom banner text goes here",
+      entryOnly: true, // 仅在入口文件添加注释
+    }),
+  ],
 };
