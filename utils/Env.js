@@ -21,6 +21,8 @@ module.exports = function getEnv(envName) {
     } else {
       environmentVariable = [process.env.envName];
     }
+  } else {
+    console.log(`\n环境变量：${process.env}\n`);
   }
   if (JSON.stringify(process.env).indexOf("GITHUB") > -1) {
     console.log(
