@@ -1,6 +1,6 @@
 /* 
 定时脚本测试模板
-0 0 * * *  每天0点执行一次
+0 0 * * *  demo.js
  */
 import getEnv from "../Utils/Env.js";
 import gotSend from "../Utils/got.js";
