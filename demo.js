@@ -2,8 +2,9 @@
 定时脚本测试模板
 0 0 * * *  demo.js
  */
-import getEnv from "./utils/Env.js";
-import gotSend from "./utils/got.js";
+
+const getEnv = require("./utils/Env.js");
+const axios = require("./utils/axios.js");
 const $ = new Env("测试项目");
 const uplower = "SU_SHE";
 const taskList = getEnv(uplower);
@@ -15,7 +16,7 @@ const taskList = getEnv(uplower);
   //       console.log(item);
   //     }
   //   });
-  let data = await gotSend("https://www.baidu.com", "GET");
+  let data = await axios.get("https://www.baidu.com");
   console.log(data);
   // $.log(data);
   //   $.msg("📢测试通知", "Hello World!!!");

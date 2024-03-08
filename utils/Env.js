@@ -1,15 +1,14 @@
-/**
- * @Created by Mol on 2024/02/27
- * @description 获取环境变量
- * @param {String} envName 环境变量名称
- */
-
-export default function (envName) {
+module.exports = function getEnv(envName) {
+  /**
+   * @Created by Mol on 2024/02/27
+   * @description 获取环境变量
+   * @param {String} envName 环境变量名称
+   */
   envName = envName.toUpperCase().trim();
 
   let environmentVariable = [
-    "asda", //第一个
-    "asdasd", //第二个
+    "", //第一个
+    "", //第二个
   ];
   let IP = "";
   // 判断环境变量里面是否有environmentVariable
@@ -119,4 +118,4 @@ export default function (envName) {
   }
 
   return environmentVariable;
-}
+};
