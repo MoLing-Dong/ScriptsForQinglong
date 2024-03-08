@@ -1,8 +1,9 @@
 /* 
-@description: 定时脚本测试模板222
-@author:MOL
+定时脚本测试模板222
 
-corn: 0 30 18 * * ?   每天0点执行一次
+0 30 18 * * ?   index.js
  */
+const $ = new Env("log");
+
 console.log("dasdasd");
 console.log("dasdasd");
