@@ -4,8 +4,7 @@
     "description": "编写一些定时脚本使用",
     "type": "module",
     "scripts": {
-        "test": "echo \"Error: no test specified\" && exit 1",
-        "build": "webpack --config webpack.config.js --progress"
+        "test": "echo \"Error: no test specified\" && exit 1"
     },
     "author": "MOL",
     "license": "ISC",
@@ -15,9 +14,6 @@
     },
     "devDependencies": {
         "glob": "^10.3.10",
-        "terser-webpack-plugin": "^5.3.10",
-        "webpack": "^5.90.3",
-        "webpack-cli": "^5.1.4",
-        "webpack-node-externals": "^3.0.0"
+        "terser-webpack-plugin": "^5.3.10"
     }
 }
