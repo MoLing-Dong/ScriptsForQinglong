@@ -1,6 +1,6 @@
 /* 
 定时脚本测试模板
-0 0 * * *  demo.js
+0 30 18 * * ?   demo.js
  */
 
 const getEnv = require("./utils/Env.js");

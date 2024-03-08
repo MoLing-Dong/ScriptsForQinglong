@@ -16,6 +16,39 @@ from urllib.parse import quote
 import requests
 from fake_useragent import UserAgent
 
+user_info = {
+    "pushPlusToken": "",
+    "user": [
+        {
+            "username": "",
+            "password": "",
+            "pushPlusToken": "",
+            "location": {
+                "adcode": "420111",
+                "address": "位置1",
+                "lng": "京都",
+                "lat": "唯独",
+            },
+            "reason": "签到描述",
+            "startDate": "2023-07-05",
+            "endDate": "2023-07-31",
+        },
+        {
+            "username": "账号2",
+            "password": "xxxx",
+            "pushPlusToken": "",
+            "location": {
+                "adcode": "420111",
+                "address": "位置1",
+                "lng": "京都",
+                "lat": "唯独",
+            },
+            "reason": "签到描述",
+            "startDate": "2023-07-05",
+            "endDate": "2023-07-31",
+        },
+    ],
+}
 ua = UserAgent()
 msg = []
 
@@ -416,19 +449,10 @@ def pushMessge(token, message):
     log(result)
 
 
-# 读取user.json
-def readJsonInfo():
-    with open("user.json", "r", encoding="utf8") as fp:
-        users = json.load(fp)
-    fp.close()
-    return users
-
-
 # 腾讯云函数使用
 def main_handler(event, context):
     sence = 2 if event["Message"] == "sign_in" else 1
-    users = readJsonInfo()
-    for user in users["user"]:
+    for user in user_info["user"]:
         log(f"执行 {user['username']} 签到/签退任务")
         now = str(datetime.today().date())
         start = user["startDate"]
@@ -440,12 +464,12 @@ def main_handler(event, context):
             continue
         signHandler(user, sence)
         time.sleep(1.5)
-    pushMessge(users["pushPlusToken"], str(msg))
+    pushMessge(user_info["pushPlusToken"], str(msg))
     log("执行结束")
 
 
 if __name__ == "__main__":
-    users = readJsonInfo()
+    user_info
     # 创建解析器对象
     parser = argparse.ArgumentParser()
     # 添加命令行参数
@@ -461,7 +485,7 @@ if __name__ == "__main__":
         sence = 2
         log("输入命令有误！")
         # exit(-1)
-    for user in users["user"]:
+    for user in user_info["user"]:
         log(f"执行 {user['username']} 签到/签退任务")
         now = str(datetime.today().date())
         start = user["startDate"]
@@ -473,5 +497,5 @@ if __name__ == "__main__":
             continue
         signHandler(user, sence)
         time.sleep(1.5)
-    pushMessge(users["pushPlusToken"], str(msg))
+    pushMessge(user_info["pushPlusToken"], str(msg))
     log("执行结束")
