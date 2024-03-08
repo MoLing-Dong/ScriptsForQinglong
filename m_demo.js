@@ -3,20 +3,20 @@
 0 30 18 * * ?   demo.js
  */
 
-const getEnv = $.isNode() ? require("./utils/Env.js") : "";
-const axios = require("./utils/axios.js");
-const notify = $.isNode() ? require("./sendNotify") : "";
 const $ = new Env("测试项目");
+const axios = require("./utils/axios.js");
+const getEnv = $.isNode() ? require("./utils/Env.js") : "";
+const notify = $.isNode() ? require("./sendNotify") : "";
 const uplower = "SU_SHE";
 const taskList = getEnv(uplower);
 
 !(async () => {
-    taskList.forEach((item) => {
-      if (item) {
-        $.log("===>>>>🔔 当前执行任务<<<<===", `账号${item + 1}`);
-        console.log(item);
-      }
-    });
+  taskList.forEach((item) => {
+    if (item) {
+      $.log("===>>>>🔔 当前执行任务<<<<===", `账号${item + 1}`);
+      console.log(item);
+    }
+  });
   let data = await axios.get("https://www.baidu.com");
   console.log(data);
   // $.log(data);
