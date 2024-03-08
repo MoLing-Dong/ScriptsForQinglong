@@ -11,19 +11,14 @@ module.exports = function getEnv(envName) {
     "", //第二个
   ];
   let IP = "";
-  // 判断环境变量里面是否有environmentVariable
-  if (process.env.envName) {
-    console.log(`\n环境变量：${process.env.envName}\n`);
-    if (process.env.envName.indexOf("&") > -1) {
-      environmentVariable = process.env.envName.split("&");
-    } else if (process.env.envName.indexOf("\n") > -1) {
-      environmentVariable = process.env.envName.split("\n");
+  if (process.env[envName]) {
+    if (process.env[envName].indexOf("&") > -1) {
+      environmentVariable = process.env[envName].split("&");
+    } else if (process.env[envName].indexOf("\n") > -1) {
+      environmentVariable = process.env[envName].split("\n");
     } else {
-      environmentVariable = [process.env.envName];
+      environmentVariable = [process.env[envName]];
     }
-  } else {
-    // 打印所有环境变量
-    console.log(`\n环境变量：${JSON.stringify(process.env)}\n`);
   }
   if (JSON.stringify(process.env).indexOf("GITHUB") > -1) {
     console.log(

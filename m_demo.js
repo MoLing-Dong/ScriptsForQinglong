@@ -13,7 +13,7 @@ const taskList = getEnv(uplower);
 !(async () => {
   taskList.forEach((item) => {
     if (item) {
-      $.log("===>>>>🔔 当前执行任务<<<<===", `账号${item + 1}`);
+      $.log("===>>>>🔔 当前执行任务<<<<===", `账号${item}`);
       console.log(item);
     }
   });
