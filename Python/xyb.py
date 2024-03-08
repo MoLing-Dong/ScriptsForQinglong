@@ -1,8 +1,8 @@
 # -*- coding: utf-8 -*-
-'''
-new Env('校友邦签到/签退');
+"""
+new Env('校友邦');
 0 30 18 * * ?  xyb.py 
-'''
+"""
 import argparse
 import hashlib
 import json
