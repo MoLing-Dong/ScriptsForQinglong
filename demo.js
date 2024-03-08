@@ -2,8 +2,8 @@
 定时脚本测试模板
 0 0 * * *  demo.js
  */
-import getEnv from "../Utils/Env.js";
-import gotSend from "../Utils/got.js";
+import getEnv from "./utils/Env.js";
+import gotSend from "./utils/got.js";
 const $ = new Env("测试项目");
 const uplower = "SU_SHE";
 const taskList = getEnv(uplower);
