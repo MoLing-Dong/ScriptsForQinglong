@@ -2,7 +2,6 @@
 """
 new Env('校友邦签到/签退');
 0 30 18 * * ?  xyb.py --sign_in
-0 30 8 * * ?  xyb.py --sign_out
 """
 
 import argparse
