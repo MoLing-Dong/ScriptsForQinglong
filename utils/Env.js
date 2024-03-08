@@ -13,6 +13,7 @@ module.exports = function getEnv(envName) {
   let IP = "";
   // 判断环境变量里面是否有environmentVariable
   if (process.env.envName) {
+    console.log(`\n环境变量：${process.env.envName}\n`);
     if (process.env.envName.indexOf("&") > -1) {
       environmentVariable = process.env.envName.split("&");
     } else if (process.env.envName.indexOf("\n") > -1) {
@@ -36,7 +37,7 @@ module.exports = function getEnv(envName) {
   environmentVariable = [
     ...new Set(environmentVariable.filter((item) => !!item)),
   ];
-  if (process.env.JD_DEBUG && process.env.JD_DEBUG === "false")
+  if (process.env.DEBUG && process.env.DEBUG === "false")
     console.log = () => {};
   console.log(
     `\n====================共${environmentVariable.length}个任务=================\n`
