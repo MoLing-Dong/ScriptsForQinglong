@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """
 new Env('校友邦');
-0 5 7,18 * *  m_xyb.py 
+0 7,18 * * *  m_xyb.py 
 """
 import argparse
 import hashlib

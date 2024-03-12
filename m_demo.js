@@ -1,6 +1,6 @@
 /* 
-定时脚本测试模板
-0 5 7,18 * *   m_demo.js
+JavaScript模板
+0 7,18 * * *   m_demo.js
  */
 
 const $ = new Env("JavaScript模板");
