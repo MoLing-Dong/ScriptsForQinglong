@@ -5,4 +5,5 @@ from utils.pyEnv import get_env
 if __name__ == "__main__":
     # 获取环境变量
     env = get_env("SU_SHE")
-    print(env)
+    for i in env:
+        print(i)

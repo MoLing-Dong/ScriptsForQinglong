@@ -5,7 +5,7 @@
 
 const $ = new Env("测试项目");
 const axios = require("./utils/axios.js");
-const getEnv = $.isNode() ? require("./utils/Env.js") : "";
+const getEnv = $.isNode() ? require("./utils/jsEnv.js") : "";
 const notify = $.isNode() ? require("./sendNotify") : "";
 const uplower = "SU_SHE";
 const taskList = getEnv(uplower);

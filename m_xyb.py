@@ -6,6 +6,7 @@ new Env('校友邦');
 import argparse
 import hashlib
 import json
+import os
 import random
 import re
 import sys
@@ -469,7 +470,7 @@ def main_handler(event, context):
 
 
 if __name__ == "__main__":
-    user_info
+    user_info=json.loads(os.environ['XYB'])
     # 创建解析器对象
     parser = argparse.ArgumentParser()
     # 添加命令行参数
