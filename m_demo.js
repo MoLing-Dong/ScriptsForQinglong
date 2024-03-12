@@ -1,9 +1,9 @@
 /* 
 定时脚本测试模板
-0 30 18 * * ?   demo.js
+0 5 7,18 * *   m_demo.js
  */
 
-const $ = new Env("测试项目");
+const $ = new Env("JavaScript模板");
 const axios = require("./utils/axios.js");
 const getEnv = $.isNode() ? require("./utils/jsEnv.js") : "";
 const notify = $.isNode() ? require("./sendNotify") : "";
