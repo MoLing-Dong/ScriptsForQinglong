@@ -1,3 +1,9 @@
+"""
+new Env('腾讯云CDN定时刷新');
+
+0 7-18 * * *  m_txy_cdn.py 
+"""
+
 import utils.pyEnv as env
 import os
 
