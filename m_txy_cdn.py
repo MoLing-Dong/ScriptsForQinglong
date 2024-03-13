@@ -22,29 +22,20 @@ import utils.pyEnv as env
 txy_cdn = env.get_env("TXY_CDN")
 
 
-def get_txy_cdn():
-    if txy_cdn:
-        for i in txy_cdn:
-            txy_cdn = i.split("#")
-            secret_id = i[0]
-            secret_key = i[1]
-            urlList = i[2]
-            urlList = urlList.split(",")
-            return secret_id, secret_key, urlList
-
-
 def sign(key, msg):
     return hmac.new(key, msg.encode("utf-8"), hashlib.sha256).digest()
 
 
 def main(secret_id, secret_key, urlList):
+    urlList = json.dumps(urlList)
     token = ""
     service = "cdn"
     host = "cdn.tencentcloudapi.com"
     region = ""
     version = "2018-06-06"
     action = "PurgeUrlsCache"
-    payload = f'{"Urls":{urlList}}'
+    # payload = f'{"Urls":{urlList}}' # 不能这样写，会报错!!!
+    payload = f'{{"Urls":{urlList}}}'
     params = json.loads(payload)
     endpoint = "https://cdn.tencentcloudapi.com"
     algorithm = "TC3-HMAC-SHA256"
@@ -137,3 +128,18 @@ def main(secret_id, secret_key, urlList):
         print(resp.read())
     except Exception as err:
         print(err)
+
+
+def get_txy_cdn():
+    txy_cdn_list = env.get_env("TXY_CDN")
+    if txy_cdn_list:
+        for i in txy_cdn_list:
+            txy_cdn = i.split("#")
+            secret_id = txy_cdn[0]
+            secret_key = txy_cdn[1]
+            urlList = txy_cdn[2]
+            urlList = urlList.split(",")
+            main(secret_id, secret_key, urlList)
+
+
+get_txy_cdn()
