@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 """
 new Env('校友邦');
+XYB=userinfo
 0 7,18 * * *  m_xyb.py 
 """
 import argparse

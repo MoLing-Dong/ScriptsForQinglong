@@ -17,9 +17,9 @@ const taskList = getEnv(uplower);
       console.log(item);
     }
   });
-//   let data = await axios.get("https://www.baidu.com");
-//   console.log(data);
-  // $.log(data);
+  //   let data = await axios.get("https://www.baidu.com");
+  //   console.log(data);
+  //   $.log(data);
   //   $.msg("📢测试通知", "Hello World!!!");
   //   $.log("📢测试通知", "Hello World!!!");
   $.done();
