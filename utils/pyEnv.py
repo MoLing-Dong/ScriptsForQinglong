@@ -44,6 +44,5 @@ def get_env(envName: str) -> list:
         f"============脚本执行时间：{current_time.strftime('%Y-%m-%d %H:%M:%S')}=============\n"
     )
 
-    for i in range(len(environmentVariable)):
-        environmentVariable[i] = urllib.parse.quote(environmentVariable[i], safe="")
+    
     return environmentVariable
