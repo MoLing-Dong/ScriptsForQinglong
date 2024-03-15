@@ -488,13 +488,14 @@ if __name__ == "__main__":
     #     log("输入命令有误！")
     #     # exit(-1)
     now = datetime.now()
-    if now.hour < 8:
+    if now.hour <= 8:
         sence = 2
-    elif now.hour > 18:
+    elif now.hour >= 18:
         sence = 1
     else:
         sence = 2
         log("当前时间不在签到/签退时间范围内")
+        exit(-1)
     for user in user_info["user"]:
         log(f"执行 {user['username']} 签到/签退任务")
         now = str(datetime.today().date())

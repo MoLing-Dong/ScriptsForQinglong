@@ -3,7 +3,7 @@
 new Env('腾讯云CDN定时刷新');
 TXY_CDN = secret_id#secret_key#urlList
 urlList = url1,url2,url3
-0 7-20 * * *  m_txy_cdn.py 
+*/10 7-20 * * * m_txy_cdn.py 
 """
 import hashlib
 import hmac
