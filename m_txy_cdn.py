@@ -140,6 +140,10 @@ def get_txy_cdn():
             urlList = txy_cdn[2]
             urlList = urlList.split(",")
             main(secret_id, secret_key, urlList)
+    else:
+        print("没有配置腾讯云CDN")
 
 
-get_txy_cdn()
+if "__main__" == __name__:
+    get_txy_cdn()
+    print("腾讯云CDN定时刷新已执行")

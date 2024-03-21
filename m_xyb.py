@@ -4,7 +4,6 @@ new Env('校友邦');
 XYB=userinfo
 0 7,18 * * *  m_xyb.py 
 """
-import argparse
 import hashlib
 import json
 import os
@@ -472,21 +471,6 @@ def main_handler(event, context):
 
 if __name__ == "__main__":
     user_info = json.loads(os.environ["XYB"])
-    # 创建解析器对象
-    parser = argparse.ArgumentParser()
-    # 添加命令行参数
-    parser.add_argument("--sign_in", action="store_true", help="执行签到函数")
-    parser.add_argument("--sign_out", action="store_true", help="执行签退函数")
-    # 解析命令行参数
-    args = parser.parse_args()
-    # if args.sign_in:
-    #     sence = 2
-    # elif args.sign_out:
-    #     sence = 1
-    # else:
-    #     sence = 2
-    #     log("输入命令有误！")
-    #     # exit(-1)
     now = datetime.now()
     if now.hour <= 8:
         sence = 2
