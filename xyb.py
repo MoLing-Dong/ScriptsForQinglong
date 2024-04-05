@@ -2,7 +2,7 @@
 """
 new Env('校友邦');
 XYB=userinfo
-0 7,18 * * *  m_xyb.py 
+0 7,18 * * *  xyb.py 
 """
 import hashlib
 import json

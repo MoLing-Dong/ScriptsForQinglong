@@ -5,7 +5,7 @@ EBILL={
     "userFj": "",
     "payType": "",
 }
-0 7,18 * * *  m_electricityBill.py
+0 7,18 * * *  electricityBill.py
 """
 
 import json
