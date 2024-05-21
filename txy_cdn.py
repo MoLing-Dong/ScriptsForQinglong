@@ -142,6 +142,7 @@ def get_txy_cdn():
             main(secret_id, secret_key, urlList)
     else:
         print("没有配置腾讯云CDN")
+        exit(0)
 
 
 if "__main__" == __name__:
