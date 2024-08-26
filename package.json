@@ -9,7 +9,7 @@
     "author": "MOL",
     "license": "ISC",
     "dependencies": {
-        "axios": "^1.6.7"
+        "axios": "^1.7.4"
     },
     "devDependencies": {
         "glob": "^10.3.10",
