@@ -16,9 +16,9 @@ from requests.exceptions import RequestException
 from loguru import logger
 
 
-ebills = env.get_env("EBILL")
+e_bills = env.get_env("EBILL")
 # 转为字典
-ebills = json.loads(ebills)
+e_bills = json.loads(e_bills)
 
 
 # 定义常量
