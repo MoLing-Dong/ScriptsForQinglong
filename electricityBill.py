@@ -19,6 +19,7 @@ from loguru import logger
 e_bills = env.get_env("EBILL")
 # 转为字典
 e_bills = json.loads(e_bills)
+import json
 
 
 # 定义常量
@@ -61,7 +62,7 @@ def fetch_electricity_info():
         return None
     logger.info(f"解析响应JSON成功: {response_json}")
 
-    # 构建信息字符串
+    # 构建信息字符串9
     info = (
         f"剩余免费电量：{response_json.get('freeElec', 'N/A')}度\n"
         f"总电量：{response_json.get('plusElec', 'N/A')}度\n"
