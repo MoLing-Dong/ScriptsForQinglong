@@ -1,11 +1,8 @@
 """
-new Env('宿舍电费');
-EBILL={
-    "userXq": "",
-    "userFj": "",
-    "payType": "",
-}
-0 7,18 * * *  electricityBill.py
+宿舍电费
+name: electricityBill
+定时规则
+cron: 0 7,18 * * *
 """
 
 import json
@@ -13,9 +10,8 @@ import utils.pyEnv as env
 import requests
 from requests.exceptions import RequestException
 
-import json
 
-# 定义常量
+# 常量定义
 URL = "http://df.huayu.edu.cn/wxapp/pay/queryElectricity"
 COOKIES = {
     "JSESSIONID": "7BADF1EB7FD02E56B8DCEA08C04E40A5",
@@ -29,47 +25,62 @@ HEADERS = {
     "Referer": "http://df.huayu.edu.cn/wxapp/api/oauth",
     "Accept-Language": "zh-CN,zh;q=0.9",
 }
-DATA = {
-    "userXq": "山东华宇工学院",
-    "userFj": "401018",
-    "payType": "1",
-}
 
 
-def fetch_electricity_info():
+def sanitize_json(json_str):
+    """修复末尾多逗号导致的 JSON 解码失败问题"""
     try:
-        # 发起POST请求并忽略SSL验证
+        return json.loads(json_str)
+    except json.JSONDecodeError:
+        import re
+
+        fixed = re.sub(r",\s*}", "}", json_str)
+        return json.loads(fixed)
+
+
+def fetch_electricity_info(account_data: dict):
+    try:
         response = requests.post(
-            URL, cookies=COOKIES, headers=HEADERS, data=DATA, verify=False
+            URL, cookies=COOKIES, headers=HEADERS, data=account_data, verify=False
         )
-        response.raise_for_status()  # 如果响应状态不是200，将抛出HTTPError异常
+        response.raise_for_status()
     except RequestException as e:
-        # 使用loguru记录更详细的错误信息
-        print(f"请求失败: {e}")
+        print(f"[{account_data.get('userFj', '未知')}]: 请求失败: {e}")
         return None
 
     try:
         response_json = response.json()["message"]
     except (json.JSONDecodeError, KeyError) as e:
-        print(f"解析响应JSON失败: {e}")
+        print(f"[{account_data.get('userFj', '未知')}]: 响应解析失败: {e}")
         return None
-    print(f"解析响应JSON成功: {response_json}")
 
-    # 构建信息字符串9
     info = (
-        f"剩余免费电量：{response_json.get('freeElec', 'N/A')}度\n"
-        f"总电量：{response_json.get('plusElec', 'N/A')}度\n"
-        f"剩余电费：{response_json.get('feeElec', 'N/A')}度\n"
         f"宿舍号：{response_json.get('room', 'N/A')}\n"
+        f"剩余免费电量：{response_json.get('freeElec', 'N/A')} 度\n"
+        f"总电量：{response_json.get('plusElec', 'N/A')} 度\n"
+        f"剩余电费：{response_json.get('feeElec', 'N/A')} 元\n"
         f"状态：{response_json.get('status', 'N/A')}"
     )
     return info
 
 
 if __name__ == "__main__":
-    electricity_info = fetch_electricity_info()
-    if electricity_info:
-        print("查询到的电量信息如下：")
-        print(electricity_info)
-    else:
-        print("未能成功获取电量信息。")
+    all_data = env.get_env("Electricity_Bill")
+
+    if not all_data:
+        print("未获取到任何账户配置")
+        exit(1)
+
+    for i, raw in enumerate(all_data):
+        try:
+            account = sanitize_json(raw)
+        except json.JSONDecodeError as e:
+            print(f"[账户{i+1}] JSON 解析失败: {e}")
+            continue
+
+        print(f"\n==== 查询第 {i+1} 个账户 ====")
+        result = fetch_electricity_info(account)
+        if result:
+            print(result)
+        else:
+            print("查询失败。")

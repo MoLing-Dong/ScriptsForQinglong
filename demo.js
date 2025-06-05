@@ -1,8 +1,9 @@
-/* 
-JavaScript模板
-0 7,18 * * *   m_demo.js
+/**
+ * 任务名称
+ * name: JavaScript模板
+ * 定时规则
+ * cron: 0 7, 18 * * *
  */
-
 const $ = new Env("JavaScript模板");
 const axios = require("./utils/axios.js");
 const getEnv = $.isNode() ? require("./utils/jsEnv.js") : "";
