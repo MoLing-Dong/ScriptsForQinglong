@@ -7,6 +7,8 @@ cron: 0 7,18 * * *
 
 import json
 import utils.pyEnv as env
+from utils.notify import print
+
 import requests
 from requests.exceptions import RequestException
 
@@ -82,5 +84,12 @@ if __name__ == "__main__":
         result = fetch_electricity_info(account)
         if result:
             print(result)
+            # QLAPI.systemNotify({"title": "test script", "content": "dddd"})
+            QLAPI.systemNotify(
+                {
+                    "title": f"宿舍电费查询 - {account.get('userFj', '未知')}",
+                    "content": result,
+                }
+            )
         else:
             print("查询失败。")
