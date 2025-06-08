@@ -12,6 +12,8 @@ def get_env(env_name):
     @description 获取环境变量
     @param {String} env_name 环境变量名称
     """
+    # 转为大写
+    env_name = env_name.upper()
     environment_variable = ["", ""]  # 初始化空列表
     IP = ""
     print(os.environ.get(env_name, "false"))

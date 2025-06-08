@@ -1,13 +1,12 @@
 """
 宿舍电费
-name: electricityBill
+name: script name 宿舍电费查询
 定时规则
 cron: 0 7,18 * * *
 """
 
 import json
 import utils.pyEnv as env
-from utils.notify import print
 
 import requests
 from requests.exceptions import RequestException
@@ -67,7 +66,7 @@ def fetch_electricity_info(account_data: dict):
 
 
 if __name__ == "__main__":
-    all_data = env.get_env("Electricity_Bill")
+    all_data = env.get_env("ELECTRICITY_BILL")
 
     if not all_data:
         print("未获取到任何账户配置")
