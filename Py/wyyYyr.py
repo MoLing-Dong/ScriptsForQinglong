@@ -1,4 +1,11 @@
-# 推歌参谋 https://st.music.163.com/g/push-assiant
+"""
+推歌参谋
+name: 推歌参谋数据查询
+定时规则
+cron: 0 7,18 * * *
+@site: https://st.music.163.com/g/push-assiant
+"""
+
 import json
 import os
 from datetime import datetime, timedelta
