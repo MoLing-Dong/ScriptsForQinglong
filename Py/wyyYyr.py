@@ -353,6 +353,5 @@ if __name__ == "__main__":
     if not JS_PATH:
         logger.error("JavaScript 文件路径无效，程序终止")
         exit(1)
-
     # 执行主函数
     main(all_data, JS_PATH)
