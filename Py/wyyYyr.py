@@ -134,6 +134,7 @@ def main(user_cookies_list: List[Dict[str, str]], js_path: str):
         js_compiled = compile_js(js_path)
         msg = ""
         for i, user_cookies in enumerate(user_cookies_list, start=1):
+            msg = ""
             try:
                 logger.info(f"处理第 {i} 个用户的请求")
                 msg += f"第 {i} 个用户: "
@@ -171,6 +172,7 @@ def main(user_cookies_list: List[Dict[str, str]], js_path: str):
                     data,
                     PARAMS,
                 )
+                msg += f"音乐人信息: {user_info}\n"
                 user_info = json.loads(user_info)
                 logger.info(
                     f'状态: {user_info["message"]} ,当前用户名: {user_info["data"]["artistName"]}'
@@ -292,14 +294,15 @@ def main(user_cookies_list: List[Dict[str, str]], js_path: str):
                         f"歌曲名: {song_name}, 今日播放量: {today_play_cnt}, 昨日播放量: {yesterday_play_cnt}, "
                         f"实时数据: {thumbnails}\n"
                     )
+                QLAPI.systemNotify(
+                    {
+                        "title": f"网易云音乐人推歌参谋",
+                        "content": msg,
+                    }
+                )
             except Exception as e:
                 logger.error(f"用户 {i} 数据获取失败: {e}")
-        QLAPI.systemNotify(
-            {
-                "title": f"网易云音乐人推歌参谋",
-                "content": msg,
-            }
-        )
+
     except Exception as e:
         logger.error(f"处理失败: {e}")
 
