@@ -20,9 +20,8 @@ def get_env(env_name: str) -> list[str]:
         # 若 QLAPI 存在（需在外部定义 QLAPI 对象）
         if QLAPI.getEnvs({"searchValue": env_name})["data"]:
             data_list = QLAPI.getEnvs({"searchValue": env_name})["data"]
-            env_values = [
-                d["value"].rstrip() for d in data_list if d["name"].upper() == env_name
-            ]
+
+            env_values = [item["value"] for item in data_list if item["status"] == 0]
             return env_values
     except NameError:
         pass  # 若 QLAPI 未定义，跳过该部分

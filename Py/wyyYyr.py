@@ -1,28 +1,26 @@
 """
-推歌参谋
-name: 推歌参谋数据查询
-定时规则
-cron: 0 7,18 * * *
-@site: https://st.music.163.com/g/push-assiant
+推歌参谋数据查询
+定时规则: 每天7点和18点执行
+数据源: 网易云音乐人后台
 """
 
 import json
 import os
+import re
+import hashlib
+import requests
+import execjs
 from datetime import datetime, timedelta
 from operator import itemgetter
-from typing import Dict, List, Any
+from loguru import logger
 import utils.pyEnv as env
 
-import execjs
-import requests
-from loguru import logger
-
-# 移除默认的 handler（包含时间戳等）
+# 日志配置
 logger.remove()
+logger.add("./log/musician_api.log", rotation="50 MB", level="DEBUG")
+logger.add(lambda msg: print(msg, end=""), format="{message}", level="INFO")
 
-# 添加只输出消息内容的 handler
-logger.add(lambda msg: print(msg, end=""), format="{message}")
-# 配置信息
+# 请求头配置
 HEADERS = {
     "accept": "application/json, text/javascript",
     "accept-language": "zh-CN,zh;q=0.9",
@@ -41,11 +39,9 @@ HEADERS = {
     "x-requested-with": "XMLHttpRequest",
 }
 
-PARAMS = {"csrf_token": "005b52c72ebb34e46b28221f28c55064"}
 
-
-def compile_js(js_path: str) -> Any:
-    """编译 JavaScript 文件并返回可调用对象"""
+def compile_js(js_path: str) -> any:
+    """编译 JavaScript 加密文件"""
     try:
         with open(js_path, "r", encoding="utf-8") as f:
             js_content = f.read()
@@ -55,8 +51,8 @@ def compile_js(js_path: str) -> Any:
         raise
 
 
-def get_data(js_compiled: Any, params: Dict[str, str]) -> Dict[str, str]:
-    """通过 JavaScript 加密生成参数"""
+def get_encrypted_data(js_compiled: any, params: dict[str, str]) -> dict[str, str]:
+    """生成加密请求参数"""
     try:
         result = js_compiled.call("getData", params)
         return {"params": result["encText"], "encSecKey": result["encSecKey"]}
@@ -65,296 +61,318 @@ def get_data(js_compiled: Any, params: Dict[str, str]) -> Dict[str, str]:
         raise
 
 
-def create_session(cookies) -> requests.Session:
-    """为每个用户创建独立的 Session 并设置 Cookies"""
-    try:
-        session = requests.Session()
-        session.headers.update(HEADERS)
-        session.headers.update({"cookie": cookies})
-        return session
-    except Exception as e:
-        logger.error(f"创建 Session 失败: {e}")
-        raise
+def create_session(cookies: str) -> requests.Session:
+    """创建带 Cookie 的 Session"""
+    session = requests.Session()
+    session.headers.update(HEADERS)
+    session.headers.update({"cookie": cookies})
+    return session
 
 
-def post_request(
-    session: requests.Session,
-    url: str,
-    data: Dict[str, str] = None,
-    params: Dict[str, str] = None,
-) -> str:
-    """发送 POST 请求并打印响应结果"""
+def login_user(js_compiled: any, phone: str, password: str) -> str:
+    """用户登录获取 Cookie"""
     try:
-        response = session.post(url, params=params, data=data)
+        # 密码使用MD5加密
+        encrypted_pwd = hashlib.md5(password.encode("utf-8")).hexdigest()
+
+        # 生成登录参数
+        login_params = {
+            "phone": phone,
+            "password": encrypted_pwd,
+            "rememberLogin": "true",
+        }
+        encrypted_data = get_encrypted_data(js_compiled, login_params)
+
+        # 发送登录请求
+        response = requests.post(
+            "https://music.163.com/weapi/login/cellphone",
+            headers=HEADERS,
+            data=encrypted_data,
+        )
         response.raise_for_status()
-        # logger.debug(response.text)
-        return response.text
-    except requests.RequestException as e:
-        logger.error(f"请求 {url} 失败: {e}")
+
+        # 检查登录结果
+        login_result = response.json()
+        if login_result.get("code") != 200:
+            raise Exception(f"登录失败: {login_result.get('message')}")
+
+        # 提取Cookie
+        cookie_dict = requests.utils.dict_from_cookiejar(response.cookies)
+        cookie_str = "; ".join([f"{k}={v}" for k, v in cookie_dict.items()])
+        logger.success(f"用户 {phone} 登录成功")
+        return cookie_str
+
+    except Exception as e:
+        logger.error(f"用户 {phone} 登录失败: {str(e)}")
         raise
 
 
-def fetch_data(
-    session: requests.Session,
-    page_num,
-    page_size,
-    artist_id,
-    dt,
-    order_field,
-    order_direction,
-):
-    """获取实时歌曲数据"""
-    json_data = {
-        "page_num": page_num,
-        "artist_id": artist_id,
-        "dt": dt,
-        "page_size": page_size,
-        "order_field": order_field,
-        "order_direction": order_direction,
-        "use_total_num": 1,
-    }
+def get_account_info(session: requests.Session, js_compiled: any) -> int:
+    """获取用户账号信息"""
     try:
+        # 获取CSRF token
+        csrf_token = re.search(r"__csrf=([^;]+)", session.headers["cookie"])
+        if not csrf_token:
+            raise ValueError("未找到CSRF token")
+
+        params = {"csrf_token": csrf_token.group(1)}
+        encrypted_data = get_encrypted_data(js_compiled, params)
+
+        # 获取账户信息
+        response = session.post(
+            "https://interface.music.163.com/api/nuser/account/get", data=encrypted_data
+        )
+        response.raise_for_status()
+
+        account_info = response.json()
+        account_id = account_info.get("account", {}).get("id")
+        if not account_id:
+            raise ValueError("未获取到账户ID")
+
+        logger.info(f"当前用户 ID: {account_id}")
+        return account_id
+
+    except Exception as e:
+        logger.error(f"获取账户信息失败: {str(e)}")
+        raise
+
+
+def get_musician_data(
+    session: requests.Session, js_compiled: any, account_id: int
+) -> dict[str, any]:
+    """获取音乐人数据"""
+    try:
+        # 获取CSRF token
+        csrf_token = re.search(r"__csrf=([^;]+)", session.headers["cookie"])
+        if not csrf_token:
+            raise ValueError("未找到CSRF token")
+
+        # 转换用户ID到艺术家ID
+        id_trans_params = {
+            "id": account_id,
+            "sourceIdType": "userId",
+            "targetIdType": "artistId",
+            "csrf_token": csrf_token.group(1),
+        }
+        encrypted_data = get_encrypted_data(js_compiled, id_trans_params)
+
+        session.post(
+            "https://interface.music.163.com/weapi/push-song-advisor/open/api/id/trans",
+            data=encrypted_data,
+        )
+
+        # 获取音乐人信息
+        params = {"csrf_token": csrf_token.group(1)}
+        encrypted_data = get_encrypted_data(js_compiled, params)
+
+        response = session.post(
+            "https://music.163.com/weapi/nmusician/entrance/user/musician/info/get",
+            data=encrypted_data,
+        )
+        response.raise_for_status()
+
+        musician_info = response.json()
+        artist_name = musician_info.get("data", {}).get("artistName", "未知艺术家")
+        logger.info(f"音乐人名称: {artist_name}")
+
+        # 获取统计数据
+        response = session.post(
+            "https://music.163.com/weapi/creator/musician/statistic/data/overview/get",
+            data=encrypted_data,
+        )
+        response.raise_for_status()
+
+        stats = response.json()
+        daily_play = stats.get("data", {}).get("playCount", 0)
+        total_play = stats.get("data", {}).get("totalPlayCount", 0)
+        logger.info(f"昨日播放: {daily_play}, 总播放: {total_play}")
+
+        # 获取收入数据
+        response = session.post(
+            "https://music.163.com/weapi/nmusician/workbench/creator/wallet/overview",
+            data=encrypted_data,
+        )
+        response.raise_for_status()
+
+        income = response.json()
+        monthly_income = income.get("data", {}).get("monthAmount", 0)
+        daily_income = income.get("data", {}).get("dailyAmount", 0)
+        logger.info(f"月收入: {monthly_income}, 日收入: {daily_income}")
+
+        return {
+            "artist_name": artist_name,
+            "daily_play": daily_play,
+            "total_play": total_play,
+            "monthly_income": monthly_income,
+            "daily_income": daily_income,
+        }
+
+    except Exception as e:
+        logger.error(f"获取音乐人数据失败: {str(e)}")
+        raise
+
+
+def get_song_data(session: requests.Session, artist_id: int) -> dict[str, any]:
+    """获取歌曲数据"""
+    try:
+        # 计算日期
+        today = datetime.now()
+        yesterday = today - timedelta(days=1)
+
+        # 请求参数
+        json_data = {
+            "page_num": 1,
+            "artist_id": artist_id,
+            "dt": yesterday.strftime("%Y-%m-%d"),
+            "page_size": 200,
+            "order_field": "today_play_cnt",
+            "order_direction": "desc",
+            "use_total_num": 1,
+        }
+
+        # 发送请求
         session.headers.update({"content-type": "application/json"})
         response = session.post(
             "https://interface.music.163.com/api/push-song-advisor/open/api/data-service/advisor/real_time_song_list",
             json=json_data,
         )
         response.raise_for_status()
-        data = response.json()
-        # logger.debug(f"获取数据成功: {data}")
-        return data
-    except requests.RequestException as e:
-        logger.error(f"请求失败: {e}")
+
+        data = response.json().get("data", {})
+        total_num = data.get("total_num", 0)
+        all_songs = data.get("data", [])
+
+        # 计算总页数
+        page_size = 200
+        total_pages = (total_num + page_size - 1) // page_size
+
+        # 获取所有页面数据
+        for page_num in range(2, total_pages + 1):
+            json_data["page_num"] = page_num
+            response = session.post(
+                "https://interface.music.163.com/api/push-song-advisor/open/api/data-service/advisor/real_time_song_list",
+                json=json_data,
+            )
+            response.raise_for_status()
+            page_data = response.json().get("data", {}).get("data", [])
+            all_songs.extend(page_data)
+
+        # 计算总播放量
+        today_play_total = sum(song.get("today_play_cnt", 0) for song in all_songs)
+        logger.info(f"歌曲总数: {len(all_songs)}, 今日播放总量: {today_play_total}")
+
+        # 按播放量排序
+        sorted_songs = sorted(all_songs, key=itemgetter("today_play_cnt"), reverse=True)
+
+        return {
+            "total_songs": len(all_songs),
+            "today_play_total": today_play_total,
+            "songs": sorted_songs,
+        }
+
+    except Exception as e:
+        logger.error(f"获取歌曲数据失败: {str(e)}")
         raise
 
 
-def main(user_cookies_list: List[Dict[str, str]], js_path: str):
+def format_report(
+    user_index: int, account_id: int, musician_data: dict, song_data: dict
+) -> str:
+    """生成报告"""
+    report = [
+        f"用户 #{user_index} 报告",
+        f"账户 ID: {account_id}",
+        f"音乐人名称: {musician_data['artist_name']}",
+        f"昨日播放量: {musician_data['daily_play']}",
+        f"总播放量: {musician_data['total_play']}",
+        f"月收入: {musician_data['monthly_income']}",
+        f"日收入: {musician_data['daily_income']}",
+        f"歌曲总数: {song_data['total_songs']}",
+        f"今日播放总量: {song_data['today_play_total']}",
+        "",
+        "歌曲播放排行:",
+    ]
+
+    # 添加歌曲信息
+    for i, song in enumerate(song_data["songs"], 1):
+        song_info = (
+            f"{i}. {song.get('song_name', '未知歌曲')}: "
+            f"今日播放 {song.get('today_play_cnt', 0)}, "
+            f"昨日播放 {song.get('yesterday_play_cnt', 0)}, "
+            f"实时数据 {song.get('thumbnails', 0)}"
+        )
+        report.append(song_info)
+
+    return "\n".join(report)
+
+
+def process_user(js_compiled: any, user_cred: str, index: int):
+    """处理单个用户"""
     try:
-        # 加载并编译 JavaScript 文件
+        # 分割用户凭证
+        if ":" not in user_cred:
+            raise ValueError("用户凭证格式错误，应为 '手机号:密码'")
+
+        phone, password = user_cred.split(":", 1)
+        logger.info(f"处理用户 #{index}: {phone}")
+
+        # 登录获取Cookie
+        cookie_str = login_user(js_compiled, phone, password)
+
+        # 创建Session
+        session = create_session(cookie_str)
+
+        # 获取账户信息
+        account_id = get_account_info(session, js_compiled)
+
+        # 获取音乐人数据
+        musician_data = get_musician_data(session, js_compiled, account_id)
+
+        # 获取歌曲数据
+        song_data = get_song_data(session, account_id)
+
+        # 生成报告
+        report = format_report(index, account_id, musician_data, song_data)
+
+        # 发送通知
+        QLAPI.systemNotify(
+            {"title": f"网易云音乐人报告 - 用户 #{index}", "content": report}
+        )
+
+        return True
+    except Exception as e:
+        logger.error(f"处理用户 #{index} 失败: {str(e)}")
+        return False
+
+
+def main():
+    """主函数"""
+    try:
+        # 获取脚本目录
+        script_dir = os.path.dirname(os.path.abspath(__file__))
+        js_path = os.path.join(script_dir, "./utils/js_reverse/wyy_reverse.js")
+
+        # 加载JS加密模块
         js_compiled = compile_js(js_path)
-        msg = ""
-        for i, user_cookies in enumerate(user_cookies_list, start=1):
-            msg = ""
-            try:
-                logger.info(f"处理第 {i} 个用户的请求")
-                msg += f"第 {i} 个用户: "
-                session = create_session(user_cookies)
-                data = get_data(js_compiled, PARAMS)
 
-                # 先请求用户账号信息
-                account_response = post_request(
-                    session,
-                    "https://interface.music.163.com/api/nuser/account/get",
-                    params=PARAMS,
-                )
-                account_id = json.loads(account_response).get("account").get("id")
-                logger.info(f"当前用户 ID: {account_id}")
-                msg += f"当前用户 ID: {account_id}\n"
-                # 根据用户账号信息进行后续请求
-                post_request(
-                    session,
-                    "https://interface.music.163.com/weapi/push-song-advisor/open/api/id/trans",
-                    get_data(
-                        js_compiled,
-                        {
-                            "id": account_id,
-                            "sourceIdType": "userId",
-                            "targetIdType": "artistId",
-                        },
-                    ),
-                    PARAMS,
-                )
+        # 获取用户凭证
+        user_creds = env.get_env("WYY_YYR")
+        if not user_creds:
+            logger.error("未找到有效的用户凭证")
+            return
 
-                # 请求音乐人信息
-                user_info = post_request(
-                    session,
-                    "https://music.163.com/weapi/nmusician/entrance/user/musician/info/get",
-                    data,
-                    PARAMS,
-                )
-                msg += f"音乐人信息: {user_info}\n"
-                user_info = json.loads(user_info)
-                logger.info(
-                    f'状态: {user_info["message"]} ,当前用户名: {user_info["data"]["artistName"]}'
-                )
+        logger.info(f"找到 {len(user_creds)} 个用户")
 
-                # 请求音乐人统计数据
-                musician_creator = post_request(
-                    session,
-                    "https://music.163.com/weapi/creator/musician/statistic/data/overview/get",
-                    data,
-                    PARAMS,
-                )
-                musician_creator = json.loads(musician_creator)
-                logger.info(
-                    f'昨日播放: {musician_creator["data"]["playCount"]} ,总播放: {musician_creator["data"]["totalPlayCount"]}'
-                )
-                msg += f'昨日播放: {musician_creator["data"]["playCount"]} ,总播放: {musician_creator["data"]["totalPlayCount"]}\n'
-                # 请求音乐人收入
-                musician_income = post_request(
-                    session,
-                    "https://music.163.com/weapi/nmusician/workbench/creator/wallet/overview",
-                    data,
-                    PARAMS,
-                )
-                # logger.debug(musician_income)
-                musician_income = json.loads(musician_income)
-                logger.info(
-                    f'月收入: {musician_income["data"]["monthAmount"]} ,日收入: {musician_income["data"]["dailyAmount"]}'
-                )
-                msg += f'月收入: {musician_income["data"]["monthAmount"]} ,日收入: {musician_income["data"]["dailyAmount"]}\n'
-                # 获取歌曲的今日播放趋势数据
-                tend_info = post_request(
-                    session,
-                    "https://music.163.com/weapi/creator/musician/play/count/statistic/data/trend/get",
-                    get_data(
-                        js_compiled,
-                        {
-                            "startTime": (datetime.now() - timedelta(days=7)).strftime(
-                                "%Y-%m-%d"
-                            ),
-                            "endTime": (datetime.now() - timedelta(days=1)).strftime(
-                                "%Y-%m-%d"
-                            ),
-                            "csrf_token": "51c7384b8dead9388a033b43afd1b40c",
-                        },
-                    ),
-                    PARAMS,
-                )
-                tend_info = json.loads(tend_info)
+        # 处理每个用户
+        success_count = 0
+        for i, cred in enumerate(user_creds, 1):
+            if process_user(js_compiled, cred, i):
+                success_count += 1
 
-                # 检查 tend_info 的结构
-                if "data" in tend_info and isinstance(tend_info["data"], list):
-                    for entry in tend_info["data"]:
-                        date_time = entry.get("dateTime", "N/A")
-                        data_value = entry.get("dataValue", "N/A")
-                        logger.info(f"日期: {date_time} ,播放量: {data_value}")
-                else:
-                    logger.error("Unexpected structure of tend_info")
-
-                # 获取歌曲数据
-                page_size = 200
-                artist_id = account_id
-                dt = (datetime.now() - timedelta(days=1)).strftime("%Y-%m-%d")
-                order_field = "today_play_cnt"
-                order_direction = "desc"
-                page_num = 1
-
-                all_songs = []
-                first_page_data = fetch_data(
-                    session,
-                    page_num,
-                    page_size,
-                    artist_id,
-                    dt,
-                    order_field,
-                    order_direction,
-                )
-                total_num = first_page_data.get("data", {}).get("total_num", 0)
-                total_pages = (total_num + page_size - 1) // page_size
-                logger.info(f"总数据量: {total_num}, 总页数: {total_pages}")
-                msg += f"总数据量: {total_num}, 总页数: {total_pages}\n"
-                # 收集第一页数据
-                all_songs.extend(first_page_data.get("data", {}).get("data", []))
-
-                # 收集其他页数据
-                for page_num in range(2, total_pages + 1):
-                    data = fetch_data(
-                        session,
-                        page_num,
-                        page_size,
-                        artist_id,
-                        dt,
-                        order_field,
-                        order_direction,
-                    )
-                    all_songs.extend(data.get("data", {}).get("data", []))
-
-                # 按 today_play_cnt 降序排序
-                sorted_songs = sorted(
-                    all_songs, key=itemgetter("today_play_cnt"), reverse=True
-                )
-
-                today_play_cnt_total = sum(
-                    song.get("today_play_cnt", 0) for song in sorted_songs
-                )
-                logger.info(f"今日播放总量: {today_play_cnt_total}")
-                msg += f"今日播放总量: {today_play_cnt_total}\n"
-                # 输出排序结果
-                for song in sorted_songs:
-                    song_name = song.get("song_name", "未知歌曲名")
-                    today_play_cnt = song.get("today_play_cnt", 0)
-                    yesterday_play_cnt = song.get("yesterday_play_cnt", 0)
-                    thumbnails = song.get("thumbnails", 0)
-                    logger.info(
-                        f"歌曲名: {song_name}, 今日播放量: {today_play_cnt}, 昨日播放量: {yesterday_play_cnt}, "
-                        f"实时数据: {thumbnails}"
-                    )
-                    msg += (
-                        f"歌曲名: {song_name}, 今日播放量: {today_play_cnt}, 昨日播放量: {yesterday_play_cnt}, "
-                        f"实时数据: {thumbnails}\n"
-                    )
-                QLAPI.systemNotify(
-                    {
-                        "title": f"网易云音乐人推歌参谋",
-                        "content": msg,
-                    }
-                )
-            except Exception as e:
-                logger.error(f"用户 {i} 数据获取失败: {e}")
-
+        logger.info(f"处理完成: 成功 {success_count}/{len(user_creds)} 个用户")
     except Exception as e:
-        logger.error(f"处理失败: {e}")
-
-
-def load_user_cookies(file_path: str) -> list:
-    """加载用户 Cookies 列表"""
-    if not os.path.exists(file_path):
-        logger.error(f"文件不存在: {file_path}")
-        return []
-
-    try:
-        with open(file_path, "r", encoding="utf-8") as f:
-            user_cookies_list = json.load(f)
-        if not isinstance(user_cookies_list, list):
-            logger.error(f"文件内容格式错误，应为列表: {file_path}")
-            return []
-        return user_cookies_list
-    except json.JSONDecodeError as e:
-        logger.error(f"解析 JSON 文件失败: {e}")
-        return []
-    except Exception as e:
-        logger.error(f"加载用户 Cookies 失败: {e}")
-        return []
-
-
-def get_js_path(base_dir: str, relative_path: str) -> str:
-    """获取 JavaScript 文件路径"""
-    js_path = os.path.join(base_dir, relative_path)
-    if not os.path.exists(js_path):
-        logger.error(f"JavaScript 文件不存在: {js_path}")
-        return ""
-    return js_path
+        logger.error(f"程序执行失败: {str(e)}")
 
 
 if __name__ == "__main__":
-
-    logger.add("./log/musician_api.log", rotation="50 MB")
-
-    # 获取脚本所在目录
-    script_dir = os.path.dirname(os.path.abspath(__file__))
-
-    # 加载用户 Cookies 列表
-    all_data = env.get_env("WYY_YYR")
-    logger.info(f"获取到 {len(all_data)} 个用户 Cookies")
-    if not all_data:
-        logger.error("用户 Cookies 列表为空，程序终止")
-        exit(1)
-
-    # 获取 JavaScript 文件路径
-    JS_PATH = get_js_path(script_dir, "./utils/js_reverse/wyy_reverse.js")
-    if not JS_PATH:
-        logger.error("JavaScript 文件路径无效，程序终止")
-        exit(1)
-    # 执行主函数
-    main(all_data, JS_PATH)
+    main()
