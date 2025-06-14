@@ -1,7 +1,9 @@
 """
-推歌参谋数据查询
-定时规则: 每天7点和18点执行
-数据源: 网易云音乐人后台
+推歌参谋
+name: 推歌参谋数据查询
+定时规则
+cron: 0 7,18 * * *
+@site: https://st.music.163.com/g/push-assiant
 """
 
 import json
@@ -314,7 +316,7 @@ def process_user(js_compiled: any, user_cred: str, index: int):
             raise ValueError("用户凭证格式错误，应为 '手机号:密码'")
 
         phone, password = user_cred.split(":", 1)
-        logger.info(f"处理用户 #{index}: {phone}")
+        logger.info(f"处理用户 ########{index}: {phone}")
 
         # 登录获取Cookie
         cookie_str = login_user(js_compiled, phone, password)
