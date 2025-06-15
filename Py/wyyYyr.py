@@ -2,7 +2,7 @@
 推歌参谋
 name: 推歌参谋数据查询
 定时规则
-cron: 0 7,18 * * *
+cron: 0 7,21 * * *
 @site: https://st.music.163.com/g/push-assiant
 """
 

@@ -1,8 +1,8 @@
 """
 宿舍电费
-name: script name 宿舍电费查询
+name: 宿舍电费查询
 定时规则
-cron: 0 7,18 * * *
+cron: 0 7,20 * * *
 """
 
 import json
