@@ -258,7 +258,18 @@ def get_song_data(session: requests.Session, artist_id: int) -> dict[str, any]:
             response.raise_for_status()
             page_data = response.json().get("data", {}).get("data", [])
             all_songs.extend(page_data)
-
+        # 输出每首歌曲的今日播放量
+        for song in all_songs:
+            song["today_play_cnt"] = song.get("today_play_cnt", 0)
+            song["yesterday_play_cnt"] = song.get("yesterday_play_cnt", 0)
+            song["thumbnails"] = song.get("thumbnails", 0)
+            # 打印具体信息
+            logger.info(
+                f"歌曲: {song.get('song_name', '未知歌曲')}, "
+                f"今日播放: {song.get('today_play_cnt', 0)}, "
+                f"昨日播放: {song.get('yesterday_play_cnt', 0)}, "
+                f"实时数据: {song.get('thumbnails', 0)}"
+            )
         # 计算总播放量
         today_play_total = sum(song.get("today_play_cnt", 0) for song in all_songs)
         logger.info(f"歌曲总数: {len(all_songs)}, 今日播放总量: {today_play_total}")
