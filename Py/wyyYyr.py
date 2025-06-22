@@ -323,7 +323,16 @@ def format_report(
 
     return "\n".join(report)
 
-
+def validate_cookie(session: requests.Session) -> bool:
+    """验证 Cookie 是否有效"""
+    try:
+        # 尝试访问一个需要登录的接口
+        test_url = "https://music.163.com/weapi/nuser/account/get"
+        response = session.post(test_url, data={"csrf_token": ""})
+        return response.json().get("code") != 301
+    except Exception as e:
+        logger.error(f"验证 Cookie 失败: {str(e)}")
+        return False
 def process_user(js_compiled: any, user_cred: str, index: int):
     """处理单个用户"""
     try:
@@ -339,24 +348,29 @@ def process_user(js_compiled: any, user_cred: str, index: int):
         # 登录获取Cookie（如果cookie为空，则调用登录接口）
         if cookie:
             cookie_str = cookie
-            logger.success(f"用户 {phone} 使用已有 Cookie 登录")
+            # 验证 Cookie 是否有效
+            session = create_session(cookie_str)
+            if not validate_cookie(session):
+                logger.warning(f"用户 {phone} 的 Cookie 已过期，正在重新登录...")
+                cookie_str = login_user(js_compiled, phone, password)
         else:
             cookie_str = login_user(js_compiled, phone, password)
-            # 获取所有的用户
-            all_user = QLAPI.getEnvs({"searchValue": "WYY_YYR"})["data"]
-            for user in all_user:
-                if user["value"].find(phone) != -1:
-                    logger.info(f"用户 {phone} 存在，更新 Cookie")
-                    # 更新用户
-                    QLAPI.updateEnv(
-                        {
+
+        # 更新 Cookie（无论是否过期，确保后续使用最新 Cookie）
+        all_user = QLAPI.getEnvs({"searchValue": "WYY_YYR"})["data"]
+        for user in all_user:
+            if user["value"].find(phone) != -1:
+                logger.info(f"{phone}:{password}:{cookie_str}")
+                QLAPI.updateEnv(
+                    {
+                        "env": {
                             "id": user["id"],
-                            "name": user["name"],
-                            "remarks": user["remarks"],
-                            "value": cookie_str,
+                            "value": f"{phone}:{password}:{cookie_str}",
                         }
-                    )
-                    break
+                    }
+                )
+                logger.info(f"更新用户:{phone}成功")
+                break
 
         # 创建Session
         session = create_session(cookie_str)
