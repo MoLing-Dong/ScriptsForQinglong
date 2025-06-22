@@ -16,7 +16,6 @@ import json
 import datetime
 import urllib.parse
 import re
-from utils.notify import notify
 
 # --- 核心功能 ---
 

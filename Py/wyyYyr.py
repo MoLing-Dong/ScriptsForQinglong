@@ -2,7 +2,12 @@
 推歌参谋
 name: 推歌参谋数据查询
 定时规则
-cron: 0 7,21 * * *
+cron: 0 8,12,23 * * *
+变量名：WYY_YYR  多账号换行
+格式：手机号:密码:cookie
+示例：13800138000:123456:WYY_YYR_COOKIE
+注意：cookie可以不填，若不填则会自动登录获取cookie
+
 @site: https://st.music.163.com/g/push-assiant
 """
 
@@ -324,13 +329,34 @@ def process_user(js_compiled: any, user_cred: str, index: int):
     try:
         # 分割用户凭证
         if ":" not in user_cred:
-            raise ValueError("用户凭证格式错误，应为 '手机号:密码'")
-
-        phone, password = user_cred.split(":", 1)
+            raise ValueError("用户凭证格式错误，应为 '手机号:密码:cookie'")
+        parts = user_cred.split(":", 2)
+        cookie = parts[2] if len(parts) > 2 else ""  # 分割成最多3部分
+        phone = parts[0]
+        password = parts[1]
         logger.info(f"处理用户 ########{index}: {phone}")
 
-        # 登录获取Cookie
-        cookie_str = login_user(js_compiled, phone, password)
+        # 登录获取Cookie（如果cookie为空，则调用登录接口）
+        if cookie:
+            cookie_str = cookie
+            logger.success(f"用户 {phone} 使用已有 Cookie 登录")
+        else:
+            cookie_str = login_user(js_compiled, phone, password)
+            # 获取所有的用户
+            all_user = QLAPI.getEnvs({"searchValue": "WYY_YYR"})["data"]
+            for user in all_user:
+                if user["value"].find(phone) != -1:
+                    logger.info(f"用户 {phone} 存在，更新 Cookie")
+                    # 更新用户
+                    QLAPI.updateEnv(
+                        {
+                            "id": user["id"],
+                            "name": user["name"],
+                            "remarks": user["remarks"],
+                            "value": cookie_str,
+                        }
+                    )
+                    break
 
         # 创建Session
         session = create_session(cookie_str)
