@@ -1,7 +1,7 @@
 {
     "name": "scriptsforqinglong",
     "version": "1.0.0",
-    "description": "编写一些定时脚本使用",
+    "description": "Scripts for Qinglong",
     "type": "commonjs",
     "scripts": {
         "test": "echo \"Error: no test specified\" && exit 1"
@@ -9,10 +9,6 @@
     "author": "MOL",
     "license": "ISC",
     "dependencies": {
-        "axios": "^1.7.4"
-    },
-    "devDependencies": {
-        "glob": "^10.3.10",
-        "terser-webpack-plugin": "^5.3.10"
+        "axios": "^1.10.0"
     }
 }

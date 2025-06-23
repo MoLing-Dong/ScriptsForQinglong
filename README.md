@@ -12,3 +12,8 @@
 ```shell
 ql repo https://github.com/MoLing-Dong/ScriptsForQinglong.git "" "utils" "utils" "main"
 ```
+
+## 依赖
+
+Node环境请使用`pnpm`
+python环境请使用`pip`
