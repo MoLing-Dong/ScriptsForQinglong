@@ -327,8 +327,9 @@ def validate_cookie(session: requests.Session) -> bool:
     """验证 Cookie 是否有效"""
     try:
         # 尝试访问一个需要登录的接口
-        test_url = "https://music.163.com/weapi/nuser/account/get"
+        test_url = "https://interface.music.163.com/api/nuser/account/get"
         response = session.post(test_url, data={"csrf_token": ""})
+        logger.info(f"Cookie 验证成功: {json.loads(response.text).get('code')}")
         return response.json().get("code") != 301
     except Exception as e:
         logger.error(f"验证 Cookie 失败: {str(e)}")
@@ -347,30 +348,32 @@ def process_user(js_compiled: any, user_cred: str, index: int):
 
         # 登录获取Cookie（如果cookie为空，则调用登录接口）
         if cookie:
-            cookie_str = cookie
-            # 验证 Cookie 是否有效
-            session = create_session(cookie_str)
-            if not validate_cookie(session):
+            session = create_session(cookie)
+            if validate_cookie(session):
+                logger.info(f"用户 {phone} 的 Cookie 仍然有效，跳过登录")
+                cookie_str = cookie
+            else:
                 logger.warning(f"用户 {phone} 的 Cookie 已过期，正在重新登录...")
                 cookie_str = login_user(js_compiled, phone, password)
         else:
             cookie_str = login_user(js_compiled, phone, password)
 
-        # 更新 Cookie（无论是否过期，确保后续使用最新 Cookie）
-        all_user = QLAPI.getEnvs({"searchValue": "WYY_YYR"})["data"]
-        for user in all_user:
-            if user["value"].find(phone) != -1:
-                logger.info(f"{phone}:{password}:{cookie_str}")
-                QLAPI.updateEnv(
-                    {
-                        "env": {
-                            "id": user["id"],
-                            "value": f"{phone}:{password}:{cookie_str}",
+        # 只有在 Cookie 发生变化时才更新 QingLong 环境变量
+        if not cookie or cookie_str != cookie:
+            all_user = QLAPI.getEnvs({"searchValue": "WYY_YYR"})["data"]
+            for user in all_user:
+                if user["value"].find(phone) != -1:
+                    logger.info(f"{phone}:{password}:{cookie_str}")
+                    QLAPI.updateEnv(
+                        {
+                            "env": {
+                                "id": user["id"],
+                                "value": f"{phone}:{password}:{cookie_str}",
+                            }
                         }
-                    }
-                )
-                logger.info(f"更新用户:{phone}成功")
-                break
+                    )
+                    logger.info(f"更新用户:{phone}成功")
+                    break
 
         # 创建Session
         session = create_session(cookie_str)
