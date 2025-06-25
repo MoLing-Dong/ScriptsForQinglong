@@ -61,11 +61,14 @@ pip install -r requirements.txt
 ```bash
 ScriptsForQinglong/
 ├── README.md               # 项目说明文档
-├── utils/                  # 公共工具函数或脚本依赖模块
-├── node_scripts/           # Node.js 实现的业务逻辑
-├── python_scripts/         # Python 脚本
-├── config/                 # 一些配置模板或环境变量示例
-└── requirements.txt        # Python 依赖文件（可选）
+├── JS/                     # 存放 JavaScript 脚本
+│   ├── utils/              # 存放 JavaScript 工具脚本
+│   └── ...                 # 其他 JS 脚本
+├── Python/                 # 存放 Python 脚本
+│   ├── utils/              # 存放 Python 工具脚本
+│   │   └── js_reverse      # JavaScript 反编译工具
+│   └── ...                 # 其他 Python 脚本
+├── requirements.txt        # Python 依赖包列表
 ```
 
 ---
