@@ -1,21 +1,65 @@
-# Security Policy
+# 🔐 Security Policy
 
-## Supported Versions
+本安全策略适用于 [MoLing-Dong/ScriptsForQinglong](https://github.com/MoLing-Dong/ScriptsForQinglong) 仓库。欢迎负责任地报告任何潜在的安全问题，以保障用户的使用安全。
 
-Use this section to tell people about which versions of your project are
-currently being supported with security updates.
+---
 
-| Version | Supported          |
+## ✅ 支持的版本
+
+以下版本当前仍在接受安全更新与维护：
+
+| 版本号  | 是否支持安全更新     |
 | ------- | ------------------ |
-| 5.1.x   | :white_check_mark: |
-| 5.0.x   | :x:                |
-| 4.0.x   | :white_check_mark: |
-| < 4.0   | :x:                |
+| `main`  | ✅ 当前开发中，优先支持 |
 
-## Reporting a Vulnerability
 
-Use this section to tell people how to report a vulnerability.
+> 建议所有用户始终使用 `main` 分支或最新稳定版本以获得最佳安全保障。
 
-Tell them where to go, how often they can expect to get an update on a
-reported vulnerability, what to expect if the vulnerability is accepted or
-declined, etc.
+---
+
+<!-- ## 🛡️ 漏洞报告渠道
+
+若你在使用过程中发现潜在的安全漏洞或异常行为，请遵循以下流程进行报告：
+
+### 📮 联系方式
+
+- 电子邮件：**<molingdong.security@protonmail.com>**
+- GitHub 安全页：[Submit a vulnerability](https://github.com/MoLing-Dong/ScriptsForQinglong/security/advisories/new)
+
+> 请不要通过公开 issue 提交漏洞报告，避免敏感信息泄露。
+
+--- -->
+
+## ⏱️ 响应流程
+
+我们对安全报告的响应流程如下：
+
+1. **初步确认**（一般在 24-48 小时内回复）
+   - 分析问题是否真实、是否影响当前版本。
+   - 如需复现信息，我们将主动联系你进一步沟通。
+
+2. **内部修复周期**
+   - 一般在确认问题后的 **3~7 日内**提供修复补丁。
+   - 视漏洞级别调整优先级，严重问题优先修复。
+
+3. **公开披露**
+   - 修复完成后可选择：
+     - 延迟披露（配合修复节奏）
+     - 立即公开（非关键或已广泛公开漏洞）
+   - 所有合规报告者均可署名鸣谢（如无匿名要求）。
+
+---
+
+## 🤝 致谢计划
+
+我们感谢所有帮助我们改进项目安全性的贡献者。经验证的高危漏洞将记录于 `SECURITY-ACKNOWLEDGEMENTS.md` 文件中（如需）。
+
+---
+
+## 📝 免责声明
+
+本项目为开源自用脚本集合，作者不对因脚本被误用、非法使用等造成的任何损失承担责任。请勿将本项目用于违反法律法规的用途。
+
+---
+
+如有更多问题，请通过邮件联系，我们将竭力保障项目安全。
