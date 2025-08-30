@@ -1,16 +1,14 @@
-#!/usr/bin/env python3
 """
-完整版：AIBase 文章爬取 + 智谱 AI 总结工具
-功能：爬取指定时间范围内的文章 → AI 生成摘要 → 输出 Markdown 报告
+AI早报
+name: AI早报
+定时规则
+cron: 0 7,20 * * *
 """
+
 import asyncio
-import sys
-import os
 import re
-import json
 import time
 import random
-import argparse
 from dataclasses import dataclass
 from datetime import datetime, timedelta
 from typing import List, Optional, Tuple, Dict
@@ -26,13 +24,9 @@ ZHIPU_API_KEY = env.get_env("ZHIPU_API_KEY")[0]
 ZHIPU_BASE_URL = env.get_env("ZHIPU_BASE_URL")[0]
 # 导入配置
 
-# OpenAI相关设置
-
-
 # 时区和配置
 TZ_SG = datetime.now().astimezone().tzinfo  # 本地时区（替代新加坡时区）
 AIBASE_LIST = "https://www.aibase.com/zh/news/"  # AIBase 新闻列表页
-
 
 # AIBase 文章 ID 匹配规则（用于提取最新文章ID）
 AIBASE_ARTICLE_PATTERNS = [
@@ -47,7 +41,6 @@ AIBASE_ARTICLE_PATTERNS = [
 @dataclass
 class Article:
     """文章数据结构（含爬取和总结所需全部字段）"""
-
     id: int  # 文章ID（AIBase 唯一标识）
     url: str  # 文章链接
     title: str  # 文章标题
@@ -662,7 +655,7 @@ def render_markdown_report(
 
 
 # 配置参数（静态变量）
-DEFAULT_HOURS = 24
+DEFAULT_HOURS = 48
 DEFAULT_MAX_ARTICLES = 20
 DEFAULT_MODEL = "glm-4-flash"
 DEFAULT_CONCURRENT = True
@@ -708,7 +701,7 @@ def main():
         log("\n程序执行完成！")
 
 
-async def main_async(hours, max_articles, model, output_path):
+async def main_async(hours, max_articles, model):
     """异步主函数（并发模式）"""
     # 1. 批量爬取符合条件的文章
     log("=" * 50)
