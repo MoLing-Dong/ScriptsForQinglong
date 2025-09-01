@@ -532,19 +532,8 @@ def openai_client(
     final_api_key = api_key or ZHIPU_API_KEY
     final_base_url = base_url or ZHIPU_BASE_URL
 
-    if (
-        not final_api_key
-        or final_api_key.strip() == "your_api_key"
-        or len(final_api_key) < 10
-    ):
-        logger.warning("未提供有效的 OpenAI API 密钥")
-        return None
-
     try:
         return OpenAI(api_key=final_api_key, base_url=final_base_url)
-    except ValueError as e:
-        logger.error(f"OpenAI客户端配置错误：{str(e)}")
-        return None
     except Exception as e:
         logger.error(f"创建 OpenAI 客户端失败：{str(e)[:50]}")
         return None
@@ -578,15 +567,16 @@ def generate_local_summary(article: Article) -> str:
 
 def ai_summarize_article(client: OpenAI, model: str, article: Article) -> str:
     """单篇文章 AI 总结（核心 AI 交互逻辑）"""
-    # AI 提示词（严格控制总结格式和质量）
+    # AI 提示词（支持所有类型的文章）
     system_prompt = (
-        "你是专业的科技文章摘要助手，需满足以下要求："
+        "你是专业的文章摘要助手，需满足以下要求："
         "1. 基于文章正文内容进行总结，不要简单重复标题；"
-        "2. 提炼文章的核心观点、技术要点或重要事件；"
+        "2. 提炼文章的核心观点、重要事件或关键信息；"
         "3. 输出15-50字的完整句子，确保语义完整，信息丰富；"
         "4. 严格保留原文含义，不添加主观观点或额外信息；"
         "5. 禁止使用 Markdown 格式、特殊符号、省略号，仅输出纯文本；"
         "6. 输出一个完整的句子，不要截断或使用不完整的表达。"
+        "7. 支持所有类型的文章内容，包括科技、新闻、评论等。"
     )
     # 构造用户输入（只使用正文内容，避免 AI 被标题影响）
     user_content = f"文章正文内容：{article.content[:1000]}"
@@ -613,11 +603,7 @@ def ai_summarize_article(client: OpenAI, model: str, article: Article) -> str:
             return summary if summary else generate_local_summary(article)
         except Exception as e:
             error_msg = str(e)
-            if "401" in error_msg or "authentication" in error_msg.lower():
-                # 认证错误，直接使用本地摘要，不再重试
-                logger.warning(f"API认证失败，使用本地摘要：文章 ID={article.id}")
-                return generate_local_summary(article)
-            elif "rate limit" in error_msg.lower() or "429" in error_msg:
+            if "rate limit" in error_msg.lower() or "429" in error_msg:
                 # 限流错误，等待更长时间
                 wait_time = 5 ** (retry + 1)  # 指数退避（5秒、25秒）
                 logger.info(
@@ -758,12 +744,62 @@ _article_cache: Dict[int, Optional[Article]] = {}
 _cache_lock = asyncio.Lock()
 
 
+def test_time_parsing():
+    """测试时间解析功能"""
+    test_times = [
+        "2024年10月18日 11:54",
+        "Aug 26, 2025",
+        "2024年10月18日",
+        "10月18日 11:54",
+        "",
+        "invalid date"
+    ]
+    
+    logger.info("开始测试时间解析...")
+    for time_text in test_times:
+        result = parse_chinese_datetime(time_text)
+        logger.info(f"输入: '{time_text}' -> 输出: {result}")
+    
+    # 测试时间筛选
+    from datetime import datetime
+    
+    # 创建测试文章
+    test_articles = [
+        Article(
+            id=1,
+            url="",
+            title="测试文章1",
+            published_at=datetime(2024, 10, 18, 10, 0, tzinfo=TZ_SG),
+            content="内容1"
+        ),
+        Article(
+            id=2,
+            url="",
+            title="测试文章2",
+            published_at=datetime(2024, 10, 17, 15, 0, tzinfo=TZ_SG),
+            content="内容2"
+        )
+    ]
+    
+    cutoff_time = datetime(2024, 10, 18, 8, 0, tzinfo=TZ_SG)
+    logger.info(f"\n测试时间筛选，截止时间: {cutoff_time}")
+    filtered = _filter_articles_by_time(test_articles, cutoff_time)
+    logger.info(f"筛选后的文章数量: {len(filtered)}")
+
+
 def main():
     # 使用静态变量配置
     hours = DEFAULT_HOURS
     max_articles = DEFAULT_MAX_ARTICLES
     model = DEFAULT_MODEL
     concurrent = DEFAULT_CONCURRENT
+    
+    import sys
+    
+    # 检查是否传入测试参数
+    if len(sys.argv) > 1 and sys.argv[1] == "test":
+        test_time_parsing()
+        return
 
     if concurrent:
         # 使用异步并发模式（默认）

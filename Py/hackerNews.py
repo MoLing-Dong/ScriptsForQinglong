@@ -1,5 +1,5 @@
 """
-Hacker News 早报（AI 早报工程风格重构）
+Hacker News 早报（带评论总结功能）
 name: Hacker News早报
 cron: 0 7,20 * * *
 """
@@ -37,6 +37,16 @@ HN_ITEM_URL = "https://hacker-news.firebaseio.com/v0/item/{}.json"
 
 
 @dataclass
+class HNComment:
+    id: int
+    text: str
+    by: str
+    time: datetime
+    kids: List[int]  # 评论的回复ID列表
+    replies: List["HNComment"] = None  # 评论的回复列表
+
+
+@dataclass
 class HNStory:
     id: int
     title: str
@@ -48,18 +58,63 @@ class HNStory:
     descendants: int
     text: Optional[str] = None
     category: str = "general"
+    comments: List[HNComment] = None  # 新增：存储评论
+    comment_summary: str = None  # 新增：评论总结
 
 
 def _get_story_category(title: str, url: Optional[str]) -> str:
     # 与原 HN 早报完全一致，省略
-    ...
+    return "general"  # 占位，实际使用时替换为完整实现
 
 
 # 缓存（简单 dict）
 _story_cache: Dict[int, Optional[HNStory]] = {}
+_comment_cache: Dict[int, Optional[HNComment]] = {}
 
 
-async def fetch_story_details(client: httpx.AsyncClient, sid: int) -> Optional[HNStory]:
+async def fetch_comment(
+    client: httpx.AsyncClient, cid: int, max_depth: int = 2
+) -> Optional[HNComment]:
+    """获取评论及其回复（递归）"""
+    if cid in _comment_cache:
+        return _comment_cache[cid]
+
+    try:
+        r = await client.get(HN_ITEM_URL.format(cid), timeout=10)
+        r.raise_for_status()
+        data = r.json()
+
+        if not data or data.get("type") != "comment":
+            _comment_cache[cid] = None
+            return None
+
+        comment = HNComment(
+            id=cid,
+            text=data.get("text", ""),
+            by=data.get("by", ""),
+            time=datetime.fromtimestamp(data.get("time", 0), tz=TZ_LOCAL),
+            kids=data.get("kids", []),
+        )
+
+        # 递归获取回复，限制深度避免过度获取
+        if max_depth > 0 and comment.kids:
+            comment.replies = []
+            for kid_id in comment.kids[:5]:  # 限制获取的回复数量
+                reply = await fetch_comment(client, kid_id, max_depth - 1)
+                if reply:
+                    comment.replies.append(reply)
+
+        _comment_cache[cid] = comment
+        return comment
+    except Exception as e:
+        logger.warning(f"fetch comment {cid} failed: {e}")
+        _comment_cache[cid] = None
+        return None
+
+
+async def fetch_story_details(
+    client: httpx.AsyncClient, sid: int, max_comments: int = 10
+) -> Optional[HNStory]:
     if sid in _story_cache:
         return _story_cache[sid]
 
@@ -83,6 +138,16 @@ async def fetch_story_details(client: httpx.AsyncClient, sid: int) -> Optional[H
             text=data.get("text"),
             category=_get_story_category(data.get("title", ""), data.get("url")),
         )
+
+        # 获取评论
+        if data.get("kids"):
+            story.comments = []
+            # 只获取前max_comments条评论
+            for comment_id in data["kids"][:max_comments]:
+                comment = await fetch_comment(client, comment_id)
+                if comment:
+                    story.comments.append(comment)
+
         _story_cache[sid] = story
         return story
     except Exception as e:
@@ -100,7 +165,11 @@ async def fetch_story_ids(story_type: str = "top") -> List[int]:
 
 
 async def collect_recent_stories_async(
-    hours: int, max_stories: int, story_type: str = "top", min_score: int = 10
+    hours: int,
+    max_stories: int,
+    story_type: str = "top",
+    min_score: int = 10,
+    max_comments: int = 10,
 ) -> List[HNStory]:
     """
     对齐 AI 早报的 collect_recent_articles_async
@@ -119,7 +188,7 @@ async def collect_recent_stories_async(
     async def fetch(sid):
         async with sem:
             await asyncio.sleep(random.uniform(0.1, 0.3))
-            return await fetch_story_details(session, sid)
+            return await fetch_story_details(session, sid, max_comments)
 
     stories: List[HNStory] = []
     async with httpx.AsyncClient() as session:
@@ -183,6 +252,59 @@ def ai_summarize_story(client: OpenAI, model: str, story: HNStory) -> str:
     return generate_local_summary(story)
 
 
+def _format_comments(comments: List[HNComment], depth: int = 0) -> str:
+    """将评论列表格式化为文本"""
+    result = []
+    indent = "  " * depth
+    for comment in comments:
+        # 简单处理HTML标签
+        text = re.sub(r"<.*?>", "", comment.text or "")
+        result.append(f"{indent}- {comment.by}: {text}")
+
+        # 递归处理回复
+        if comment.replies:
+            result.append(_format_comments(comment.replies, depth + 1))
+
+    return "\n".join(result)
+
+
+def ai_summarize_comments(client: OpenAI, model: str, story: HNStory) -> str:
+    """总结帖子的评论内容"""
+    if not story.comments or len(story.comments) == 0:
+        return "暂无有价值的评论"
+
+    # 格式化评论
+    comments_text = _format_comments(story.comments)
+
+    # 限制评论文本长度
+    if len(comments_text) > 2000:
+        comments_text = comments_text[:2000] + "..."
+
+    system = "你是专业评论摘要助手，请用中文 30-100 字总结以下HN评论的主要观点和讨论焦点，不添加个人观点，不输出markdown"
+    user = f"评论内容：{comments_text}"
+
+    payload = dict(
+        model=model,
+        messages=[
+            {"role": "system", "content": system},
+            {"role": "user", "content": user},
+        ],
+        temperature=0.3,
+        top_p=0.8,
+    )
+
+    for retry in range(3):
+        try:
+            resp = client.chat.completions.create(**payload)
+            summary = re.sub(r"\s+", " ", resp.choices[0].message.content).strip()
+            return summary or "评论内容未能有效总结"
+        except Exception as e:
+            wait = 2**retry
+            logger.warning(f"comment summary retry {retry+1}: {e} -> sleep {wait}s")
+            time.sleep(wait)
+    return "评论总结失败"
+
+
 async def batch_ai_summarize_async(
     stories: List[HNStory], api_key: str, model: str
 ) -> List[Tuple[HNStory, str]]:
@@ -195,10 +317,19 @@ async def batch_ai_summarize_async(
         async with sem:
             await asyncio.sleep(random.uniform(0.2, 0.5))
             loop = asyncio.get_event_loop()
-            summary = await loop.run_in_executor(
+
+            # 总结故事
+            story_summary = await loop.run_in_executor(
                 None, ai_summarize_story, client, model, story
             )
-            return (story, summary)
+
+            # 总结评论
+            comment_summary = await loop.run_in_executor(
+                None, ai_summarize_comments, client, model, story
+            )
+            story.comment_summary = comment_summary
+
+            return (story, story_summary)
 
     tasks = [do(s, i) for i, s in enumerate(stories, 1)]
     results = await asyncio.gather(*tasks, return_exceptions=True)
@@ -215,17 +346,21 @@ def render_markdown_report(
     lines = [
         f"# Hacker News 早报（{date_label}）",
         f"**本期收录 {len(summarized)} 条热门故事**",
+        "",
     ]
     for story, summary in summarized:
         lines += [
-            f"### {summary}",
+            f"## {summary}",
             "",
-            f"🔺 {story.score}  💬 {story.descendants}  👤 {story.by}  🏷️ {story.category}",
+            f"🔺 得分：{story.score}  💬 评论数：{story.descendants}  👤 作者：{story.by}  🏷️ 分类：{story.category}",
             "",
         ]
         if story.url:
             lines.append(f"原文：[{story.url}]({story.url})")
         lines.append(f"讨论：[Hacker News]({story.hn_url})")
+
+        # 添加评论总结
+        lines += ["", "### 评论总结", story.comment_summary, "", "---", ""]
     return "\n".join(lines)
 
 
@@ -235,6 +370,7 @@ DEFAULT_MODEL = "glm-4-flash"
 DEFAULT_CONCURRENT = True
 MAX_CONCURRENT_REQUESTS = 15
 MAX_CONCURRENT_AI = 20
+DEFAULT_MAX_COMMENTS = 10  # 每篇帖子获取的最大评论数
 
 
 async def main_async(
@@ -243,19 +379,20 @@ async def main_async(
     model: str = DEFAULT_MODEL,
     story_type: str = "top",
     min_score: int = 10,
+    max_comments: int = DEFAULT_MAX_COMMENTS,
 ):
     logger.info("=" * 60)
-    logger.info("【1】开始爬取 Hacker News")
+    logger.info("【1】开始爬取 Hacker News 故事及评论")
     logger.info("=" * 60)
     stories = await collect_recent_stories_async(
-        hours, max_stories, story_type, min_score
+        hours, max_stories, story_type, min_score, max_comments
     )
     if not stories:
         logger.warning("未获取到任何故事")
         return
 
     logger.info("=" * 60)
-    logger.info("【2】开始 AI 总结")
+    logger.info("【2】开始 AI 总结故事和评论")
     logger.info("=" * 60)
     summarized = await batch_ai_summarize_async(stories, ZHIPU_API_KEY, model)
 
