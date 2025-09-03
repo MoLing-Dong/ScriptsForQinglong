@@ -250,7 +250,7 @@ def generate_local_summary(story: HNStory) -> str:
 
 
 def ai_summarize_story(client: OpenAI, model: str, story: HNStory) -> str:
-    system = "你是专业科技摘要助手，请用中文 10-40 字完整句子总结 HN 故事，不添加观点，不输出 markdown"
+    system = "你是专业科技摘要助手，请用中文 25-35 字完整句子总结 HN 故事，不添加观点，不输出 markdown"
     user = f"标题：{story.title}\n分类：{story.category}"
     payload = dict(
         model=model,
@@ -265,12 +265,12 @@ def ai_summarize_story(client: OpenAI, model: str, story: HNStory) -> str:
         try:
             resp = client.chat.completions.create(**payload)
             summary = re.sub(r"\s+", " ", resp.choices[0].message.content).strip()
-            return summary or generate_local_summary(story)
+            return summary
         except Exception as e:
             wait = 2**retry
             logger.warning(f"ai retry {retry+1}: {e} -> sleep {wait}s")
             time.sleep(wait)
-    return generate_local_summary(story)
+    return ""
 
 
 def ai_summarize_comments(client: OpenAI, model: str, story: HNStory) -> str:
@@ -306,12 +306,12 @@ def ai_summarize_comments(client: OpenAI, model: str, story: HNStory) -> str:
         try:
             resp = client.chat.completions.create(**payload)
             summary = re.sub(r"\s+", " ", resp.choices[0].message.content).strip()
-            return summary or "评论内容较多，未形成统一观点"
+            return summary
         except Exception as e:
             wait = 2**retry
             logger.warning(f"comment summary retry {retry+1}: {e} -> sleep {wait}s")
             time.sleep(wait)
-    return "评论总结生成失败"
+    return ""
 
 
 async def batch_ai_summarize_async(

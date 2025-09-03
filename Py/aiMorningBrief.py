@@ -11,10 +11,9 @@ import time
 import random
 from dataclasses import dataclass
 from datetime import datetime, timedelta
-from typing import List, Optional, Tuple, Dict, Union, Any
+from typing import List, Optional, Tuple, Dict
 import utils.pyEnv as env
 from openai import OpenAI
-import QLAPI
 import aiohttp
 import requests
 from bs4 import BeautifulSoup
@@ -708,23 +707,30 @@ def batch_ai_summarize(
     return summarized_list
 
 
+# -------------------------- 仅修改此函数，确保输出"一条条AI总结" --------------------------
 def render_markdown_report(
     date_label: str, summarized: List[Tuple[Article, str]]
 ) -> str:
-    """生成 Markdown 格式报告（便于阅读和分享）"""
+    """生成 Markdown 格式报告（仅输出一条条AI分析后的总结）"""
     if not summarized:
-        return f"# AI 文章总结报告（{date_label}）\n\n无符合条件的文章"
+        return f"# AI 文章总结报告（{date_label}）\n\n无符合条件的AI总结结果"
 
+    # 构建报告结构：标题 + 逐条AI总结
     lines = [
         f"# AI 文章总结报告（{date_label}）",
         "",
-        "---",
-        "",
+        f"> 共 {len(summarized)} 条AI总结结果（按文章发布时间倒序）",
+        ""
     ]
 
-    for _, summary in enumerate(summarized, 1):
-        lines.append(f"## {summary}")
-        lines.append("")
+    # 遍历每条总结，按"序号 + 文章标题 + AI总结 + 原文链接"的格式输出
+    for seq, (article, ai_summary) in enumerate(summarized, 1):
+        lines.extend([
+            f"## {seq}. {article.title}",
+            f"> AI核心总结：{ai_summary}",
+            f"> 原文链接：{article.url}",
+            ""
+        ])
 
     return "\n".join(lines).strip()
 
@@ -829,6 +835,11 @@ def main():
         markdown_content = render_markdown_report(date_label, summarized_articles)
 
         logger.info("程序执行完成！")
+        # 打印最终报告（便于查看）
+        logger.info("\n" + "="*80)
+        logger.info("最终AI总结报告：")
+        logger.info(markdown_content)
+        logger.info("="*80)
 
 
 async def main_async(hours, max_articles, model):
@@ -863,6 +874,11 @@ async def main_async(hours, max_articles, model):
     except Exception as e:
         logger.info(f"错误：发送消息失败：{str(e)}")
 
+    # 打印最终报告（便于查看）
+    logger.info("\n" + "="*80)
+    logger.info("最终AI总结报告：")
+    logger.info(markdown_content)
+    logger.info("="*80)
     logger.info("程序执行完成！")
 
 
