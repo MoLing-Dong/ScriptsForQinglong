@@ -726,8 +726,7 @@ def render_markdown_report(
     # 遍历每条总结，按"序号 + 文章标题 + AI总结 + 原文链接"的格式输出
     for seq, (article, ai_summary) in enumerate(summarized, 1):
         lines.extend([
-            f"## {seq}. {article.title}",
-            f"> AI核心总结：{ai_summary}",
+            f"> {ai_summary}",
             f"> 原文链接：{article.url}",
             ""
         ])
@@ -750,48 +749,6 @@ _article_cache: Dict[int, Optional[Article]] = {}
 _cache_lock = asyncio.Lock()
 
 
-def test_time_parsing():
-    """测试时间解析功能"""
-    test_times = [
-        "2024年10月18日 11:54",
-        "Aug 26, 2025",
-        "2024年10月18日",
-        "10月18日 11:54",
-        "",
-        "invalid date"
-    ]
-    
-    logger.info("开始测试时间解析...")
-    for time_text in test_times:
-        result = parse_chinese_datetime(time_text)
-        logger.info(f"输入: '{time_text}' -> 输出: {result}")
-    
-    # 测试时间筛选
-    from datetime import datetime
-    
-    # 创建测试文章
-    test_articles = [
-        Article(
-            id=1,
-            url="",
-            title="测试文章1",
-            published_at=datetime(2024, 10, 18, 10, 0, tzinfo=TZ_SG),
-            content="内容1"
-        ),
-        Article(
-            id=2,
-            url="",
-            title="测试文章2",
-            published_at=datetime(2024, 10, 17, 15, 0, tzinfo=TZ_SG),
-            content="内容2"
-        )
-    ]
-    
-    cutoff_time = datetime(2024, 10, 18, 8, 0, tzinfo=TZ_SG)
-    logger.info(f"\n测试时间筛选，截止时间: {cutoff_time}")
-    filtered = _filter_articles_by_time(test_articles, cutoff_time)
-    logger.info(f"筛选后的文章数量: {len(filtered)}")
-
 
 def main():
     # 使用静态变量配置
@@ -800,12 +757,6 @@ def main():
     model = DEFAULT_MODEL
     concurrent = DEFAULT_CONCURRENT
     
-    import sys
-    
-    # 检查是否传入测试参数
-    if len(sys.argv) > 1 and sys.argv[1] == "test":
-        test_time_parsing()
-        return
 
     if concurrent:
         # 使用异步并发模式（默认）
