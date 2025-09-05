@@ -33,7 +33,7 @@ def print(text, *args, **kw):
 # 通知服务
 # fmt: off
 push_config = {
-    'HITOKOTO': True,                  # 启用一言（随机句子）
+    'HITOKOTO': False,                  # 启用一言（随机句子）
 
     'BARK_PUSH': '',                    # bark IP 或设备码，例：https://api.day.app/DxHcxxxxxRxxxxxxcm/
     'BARK_ARCHIVE': '',                 # bark 推送是否存档
@@ -43,7 +43,7 @@ push_config = {
     'BARK_LEVEL': '',                   # bark 推送时效性
     'BARK_URL': '',                     # bark 推送跳转URL
 
-    'CONSOLE': False,                    # 控制台输出
+    'CONSOLE': False,                   # 控制台输出
 
     'DD_BOT_SECRET': '',                # 钉钉机器人的 DD_BOT_SECRET
     'DD_BOT_TOKEN': '',                 # 钉钉机器人的 DD_BOT_TOKEN
@@ -82,7 +82,7 @@ push_config = {
 
     'WE_PLUS_BOT_TOKEN': '',            # 微加机器人的用户令牌
     'WE_PLUS_BOT_RECEIVER': '',         # 微加机器人的消息接收者
-    'WE_PLUS_BOT_VERSION': 'pro',          # 微加机器人的调用版本
+    'WE_PLUS_BOT_VERSION': 'pro',       # 微加机器人的调用版本
 
     'QMSG_KEY': '',                     # qmsg 酱的 QMSG_KEY
     'QMSG_TYPE': '',                    # qmsg 酱的 QMSG_TYPE
@@ -106,9 +106,11 @@ push_config = {
 
     'SMTP_SERVER': '',                  # SMTP 发送邮件服务器，形如 smtp.exmail.qq.com:465
     'SMTP_SSL': 'false',                # SMTP 发送邮件服务器是否使用 SSL，填写 true 或 false
-    'SMTP_EMAIL': '',                   # SMTP 收发件邮箱，通知将会由自己发给自己
+    'SMTP_EMAIL': '',                   # SMTP 发件邮箱
     'SMTP_PASSWORD': '',                # SMTP 登录密码，也可能为特殊口令，视具体邮件服务商说明而定
-    'SMTP_NAME': '',                    # SMTP 收发件人姓名，可随意填写
+    'SMTP_NAME': '',                    # SMTP 发件人姓名，可随意填写
+    'SMTP_EMAIL_TO': '',                # SMTP 收件邮箱，可选，缺省时将自己发给自己，多个收件邮箱逗号间隔
+    'SMTP_NAME_TO': '',                 # SMTP 收件人姓名，可选，可随意填写，多个收件人逗号间隔，顺序与 SMTP_EMAIL_TO 保持一致
 
     'PUSHME_KEY': '',                   # PushMe 的 PUSHME_KEY
     'PUSHME_URL': '',                   # PushMe 的 PUSHME_URL
@@ -126,10 +128,19 @@ push_config = {
     'NTFY_URL': '',                     # ntfy地址,如https://ntfy.sh
     'NTFY_TOPIC': '',                   # ntfy的消息应用topic
     'NTFY_PRIORITY':'3',                # 推送消息优先级,默认为3
+    'NTFY_TOKEN': '',                   # 推送token,可选
+    'NTFY_USERNAME': '',                # 推送用户名称,可选
+    'NTFY_PASSWORD': '',                # 推送用户密码,可选
+    'NTFY_ACTIONS': '',                 # 推送用户动作,可选
 
     'WXPUSHER_APP_TOKEN': '',           # wxpusher 的 appToken 官方文档: https://wxpusher.zjiecode.com/docs/ 管理后台: https://wxpusher.zjiecode.com/admin/
     'WXPUSHER_TOPIC_IDS': '',           # wxpusher 的 主题ID，多个用英文分号;分隔 topic_ids 与 uids 至少配置一个才行
     'WXPUSHER_UIDS': '',                # wxpusher 的 用户ID，多个用英文分号;分隔 topic_ids 与 uids 至少配置一个才行
+
+    'DODO_BOTTOKEN': '',                # DoDo机器人的token DoDo开发平台https://doker.imdodo.com/
+    'DODO_BOTID': '',                   # DoDo机器人的id
+    'DODO_LANDSOURCEID': '',            # DoDo机器人所在的群ID
+    'DODO_SOURCEID': '',                # DoDo机器人推送目标用户的ID
 }
 # fmt: on
 
@@ -187,7 +198,8 @@ def console(title: str, content: str) -> None:
     """
     使用 控制台 推送消息。
     """
-    print(f"{title}\n\n{content}")
+    if str(push_config.get("CONSOLE")).lower() != "false":
+        print(f"{title}\n\n{content}")
 
 
 def dingding_bot(title: str, content: str) -> None:
@@ -678,12 +690,23 @@ def smtp(title: str, content: str) -> None:
             push_config.get("SMTP_EMAIL"),
         )
     )
-    message["To"] = formataddr(
-        (
-            Header(push_config.get("SMTP_NAME"), "utf-8").encode(),
-            push_config.get("SMTP_EMAIL"),
+    if  not push_config.get("SMTP_EMAIL_TO"):
+        smtp_email_to = push_config.get("SMTP_EMAIL")
+        message["To"] = formataddr(
+            (
+                Header(push_config.get("SMTP_NAME"), "utf-8").encode(),
+                push_config.get("SMTP_EMAIL"),
+            )
         )
-    )
+    else:
+        smtp_email_to = push_config.get("SMTP_EMAIL_TO").split(",")
+        smtp_name_to = push_config.get("SMTP_NAME_TO","").split(",")
+        message["To"] = ",".join([formataddr(
+            (
+                Header(smtp_name_to[i] if len(smtp_name_to) > i else "", "utf-8").encode(),
+                email_to,
+            )
+        ) for i, email_to in enumerate(smtp_email_to)])
     message["Subject"] = Header(title, "utf-8")
 
     try:
@@ -697,7 +720,7 @@ def smtp(title: str, content: str) -> None:
         )
         smtp_server.sendmail(
             push_config.get("SMTP_EMAIL"),
-            push_config.get("SMTP_EMAIL"),
+            smtp_email_to,
             message.as_bytes(),
         )
         smtp_server.close()
@@ -806,7 +829,14 @@ def ntfy(title: str, content: str) -> None:
     encoded_title = encode_rfc2047(title)
 
     data = content.encode(encoding="utf-8")
-    headers = {"Title": encoded_title, "Priority": priority}  # 使用编码后的 title
+    headers = {"Title": encoded_title, "Priority": priority, "Icon": "https://qn.whyour.cn/logo.png"}  # 使用编码后的 title
+    if push_config.get("NTFY_TOKEN"):
+        headers['Authorization'] = "Bearer " + push_config.get("NTFY_TOKEN")
+    elif push_config.get("NTFY_USERNAME") and push_config.get("NTFY_PASSWORD"):
+        authStr = push_config.get("NTFY_USERNAME") + ":" + push_config.get("NTFY_PASSWORD")
+        headers['Authorization'] = "Basic " + base64.b64encode(authStr.encode('utf-8')).decode('utf-8')
+    if push_config.get("NTFY_ACTIONS"):
+        headers['Actions'] = encode_rfc2047(push_config.get("NTFY_ACTIONS"))
 
     url = push_config.get("NTFY_URL") + "/" + push_config.get("NTFY_TOPIC")
     response = requests.post(url, data=data, headers=headers)
@@ -815,6 +845,54 @@ def ntfy(title: str, content: str) -> None:
     else:
         print("Ntfy 推送失败！错误信息：", response.text)
 
+def dodo_bot(title: str, content: str) -> None:
+    """
+    通过 DoDo机器人 推送消息
+    """
+    required_keys = [
+        'DODO_BOTTOKEN',
+        'DODO_BOTID',
+        'DODO_LANDSOURCEID',
+        'DODO_SOURCEID'
+    ]
+    if not all(push_config.get(key) for key in required_keys):
+        missing = [key for key in required_keys if not push_config.get(key)]
+        print(f"DoDo 服务配置不完整，缺少以下参数: {', '.join(missing)}\n取消推送")
+        return
+    print("DoDo 服务启动")
+    url="https://botopen.imdodo.com/api/v2/personal/message/send"
+
+    botID=push_config.get('DODO_BOTID')
+    botToken=push_config.get('DODO_BOTTOKEN')
+    islandSourceId=push_config.get('DODO_LANDSOURCEID')
+    dodoSourceId=push_config.get('DODO_SOURCEID')
+
+    headers = {
+        'Authorization': f'Bot {botID}.{botToken}',
+        'Content-Type': 'application/json',
+        'Host': 'botopen.imdodo.com'
+    }
+    payload = json.dumps({
+        "islandSourceId": islandSourceId,
+        "dodoSourceId": dodoSourceId,
+        "messageType": 1,
+        "messageBody": {
+            "content": f"{title}\n\n{content}"
+        }
+    })
+
+    try:
+        response = requests.post(url, headers=headers, data=payload)
+        if response.status_code == 200:
+            response = response.json()
+            if response.get("status") == 0 and response.get("message") == "success":
+                print(f'DoDo 推送成功！')
+            else:
+                print(f'DoDo 推送失败！错误信息：\n{response}')
+        else:
+            print("DoDo 推送失败！错误信息：", response.text)
+    except Exception as e:
+        print(f"DoDo 推送请求异常: {str(e)}")
 
 def wxpusher_bot(title: str, content: str) -> None:
     """
@@ -1029,6 +1107,13 @@ def add_notify_function():
         and push_config.get("CHRONOCAT_TOKEN")
     ):
         notify_function.append(chronocat)
+    if (
+        push_config.get("DODO_BOTTOKEN")
+        and push_config.get("DODO_BOTID")
+        and push_config.get("DODO_LANDSOURCEID")
+        and push_config.get("DODO_SOURCEID")
+    ):
+        notify_function.append(dodo_bot)
     if push_config.get("WEBHOOK_URL") and push_config.get("WEBHOOK_METHOD"):
         notify_function.append(custom_notify)
     if push_config.get("NTFY_TOPIC"):
@@ -1062,7 +1147,8 @@ def send(title: str, content: str, ignore_default_config: bool = False, **kwargs
             return
 
     hitokoto = push_config.get("HITOKOTO")
-    content += "\n\n" + one() if hitokoto != "false" else ""
+    if hitokoto and str(hitokoto).lower() != "false":
+        content += "\n\n" + one()
 
     notify_function = add_notify_function()
     ts = [
