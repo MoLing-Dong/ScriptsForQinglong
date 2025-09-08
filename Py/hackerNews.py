@@ -1,7 +1,7 @@
 """
 Hacker News 早报（带评论总结功能）
 name: Hacker News早报
-cron: 0 7,20 * * *
+cron: 20 7 * * *
 """
 
 import asyncio
