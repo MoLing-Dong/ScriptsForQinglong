@@ -1,13 +1,12 @@
 """
-Edge必应自动搜索赚积分
+name: bing 积分
+定时规则
+cron: 1 9 * * *
+
 使用Edge浏览器打开必应 https://rewards.bing.com/ F12抓取Cookie即可
 
 变量名：BING_COOKIE  多账号换行
-
-如果执行的发现积分不增长，且脚本上显示的积分跟实际不符，很有可能不是同一个账号的cookie，建议重新抓取。
-玄学报错目前无解，凑合用吧！
 """
-
 import requests
 import os
 import time

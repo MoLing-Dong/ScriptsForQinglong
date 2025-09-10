@@ -414,7 +414,7 @@ async def main_async(
 
     # 如需发送到通知渠道，可在此处调用 QLAPI.systemNotify(...)
     logger.info(md)
-    QLAPI.systemNotify({"title": "AIBase 文章总结报告", "content": md})
+    logger.info(QLAPI.systemNotify({"title": "AIBase 文章总结报告", "content": md}))
     logger.info("done")
 
 

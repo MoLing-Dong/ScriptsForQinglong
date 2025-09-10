@@ -17,7 +17,6 @@ def get_env(env_name: str) -> list[str]:
     env_values = []
 
     try:
-        # 若 QLAPI 存在（需在外部定义 QLAPI 对象）
         if QLAPI.getEnvs({"searchValue": env_name})["data"]:
             data_list = QLAPI.getEnvs({"searchValue": env_name})["data"]
 
