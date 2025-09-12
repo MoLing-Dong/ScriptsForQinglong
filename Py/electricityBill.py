@@ -83,12 +83,7 @@ if __name__ == "__main__":
         result = fetch_electricity_info(account)
         if result:
             print(result)
-            # QLAPI.systemNotify({"title": "test script", "content": "dddd"})
-            QLAPI.systemNotify(
-                {
-                    "title": f"宿舍电费查询 - {account.get('userFj', '未知')}",
-                    "content": result,
-                }
-            )
+            QLAPI.notify(f"宿舍电费查询 - {account.get('userFj', '未知')}", result)
+
         else:
             print("查询失败。")

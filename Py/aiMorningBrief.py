@@ -819,9 +819,8 @@ async def main_async(hours, max_articles, model):
 
     # 发送消息
     try:
-        QLAPI.systemNotify(
-            {"title": "AIBase 文章总结报告", "content": markdown_content}
-        )
+        QLAPI.notify("AIBase 文章总结报告", markdown_content)
+        
     except Exception as e:
         logger.info(f"错误：发送消息失败：{str(e)}")
 

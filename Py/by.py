@@ -362,12 +362,7 @@ if __name__ == "__main__":
                 today = datetime.date.today().strftime("%Y-%m-%d")
                 title = f"Bing 任务总结 ({today})"
                 content = "\n\n".join(all_summaries)
-                QLAPI.systemNotify(
-                    {
-                        "title": title,
-                        "content": content,
-                    }
-                )
+                QLAPI.notify(title, content)
                 print_log("推送成功", "总结报告已发送。")
             except Exception as e:
                 print_log("推送失败", f"发送总结报告时出错: {e}")

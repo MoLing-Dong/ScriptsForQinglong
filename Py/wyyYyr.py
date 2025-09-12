@@ -391,9 +391,7 @@ def process_user(js_compiled: any, user_cred: str, index: int):
         report = format_report(index, account_id, musician_data, song_data)
 
         # 发送通知
-        QLAPI.systemNotify(
-            {"title": f"网易云音乐人报告 - 用户 #{index}", "content": report}
-        )
+        QLAPI.notify(f"网易云音乐人报告 - 用户 #{index}", report)
 
         return True
     except Exception as e:
