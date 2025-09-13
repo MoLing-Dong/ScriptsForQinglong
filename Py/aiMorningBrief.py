@@ -727,7 +727,6 @@ def render_markdown_report(
     for seq, (article, ai_summary) in enumerate(summarized, 1):
         lines.extend([
             f"> {ai_summary}",
-            f"> 原文链接：{article.url}",
             ""
         ])
 
@@ -736,7 +735,7 @@ def render_markdown_report(
 
 # 配置参数（静态变量）
 DEFAULT_HOURS = 48
-DEFAULT_MAX_ARTICLES = 20
+DEFAULT_MAX_ARTICLES = 10
 DEFAULT_MODEL = "glm-4-flash"
 DEFAULT_CONCURRENT = True
 MAX_CONCURRENT_REQUESTS = 10  # 最大并发请求数
@@ -819,6 +818,7 @@ async def main_async(hours, max_articles, model):
 
     # 发送消息
     try:
+        logger.info(markdown_content)
         QLAPI.notify("AIBase 文章总结报告", markdown_content)
         
     except Exception as e:
