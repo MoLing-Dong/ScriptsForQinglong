@@ -3,9 +3,18 @@
 name: 宿舍电费查询
 定时规则
 cron: 0 7,20 * * *
+
+ELECTRICITY_BILL = 
+{
+    'userXq': '山东华宇工学院',
+    'userFj': '1501018',
+    'payType': '1',
+}
+
 """
 
 import json
+import re
 import utils.pyEnv as env
 
 import requests
@@ -29,14 +38,30 @@ HEADERS = {
 
 
 def sanitize_json(json_str):
-    """修复末尾多逗号导致的 JSON 解码失败问题"""
+    """修复各种JSON格式问题"""
     try:
+        # 首先尝试直接解析
         return json.loads(json_str)
     except json.JSONDecodeError:
-        import re
-
-        fixed = re.sub(r",\s*}", "}", json_str)
-        return json.loads(fixed)
+        try:
+            # 清理字符串
+            cleaned = json_str.strip()
+            
+            # 修复单引号为双引号
+            cleaned = re.sub(r"'([^']*)':", r'"\1":', cleaned)
+            cleaned = re.sub(r":\s*'([^']*)'", r': "\1"', cleaned)
+            
+            # 修复末尾多逗号
+            cleaned = re.sub(r",\s*}", "}", cleaned)
+            cleaned = re.sub(r",\s*]", "]", cleaned)
+            
+            # 修复属性名没有引号的问题
+            cleaned = re.sub(r"(\w+):", r'"\1":', cleaned)
+            
+            return json.loads(cleaned)
+        except json.JSONDecodeError as e:
+            print(f"JSON修复失败，原始字符串: {json_str}")
+            raise e
 
 
 def fetch_electricity_info(account_data: dict):
@@ -73,6 +98,7 @@ if __name__ == "__main__":
         exit(1)
 
     for i, raw in enumerate(all_data):
+        print(raw)
         try:
             account = sanitize_json(raw)
         except json.JSONDecodeError as e:
@@ -83,7 +109,7 @@ if __name__ == "__main__":
         result = fetch_electricity_info(account)
         if result:
             print(result)
-            QLAPI.notify(f"宿舍电费查询 - {account.get('userFj', '未知')}", result)
+            QLAPI.notify(f"宿舍电费查询 ", result)
 
         else:
             print("查询失败。")
