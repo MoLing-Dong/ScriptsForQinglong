@@ -2,7 +2,7 @@
 AI早报
 name: AI早报
 定时规则
-cron: 20 7 * * *
+cron: 0 9 * * *
 """
 
 import asyncio

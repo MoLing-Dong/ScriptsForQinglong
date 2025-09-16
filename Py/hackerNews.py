@@ -1,7 +1,7 @@
 """
 Hacker News 早报（评论摘要版）
 name: Hacker News早报
-cron: 20 7 * * *
+cron: 30 8 * * *
 
 功能说明：
 - 获取 Hacker News 热门故事
