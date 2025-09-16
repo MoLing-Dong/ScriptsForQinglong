@@ -32,30 +32,6 @@ ql repo https://github.com/MoLing-Dong/ScriptsForQinglong.git "" "utils" "utils"
 
 本项目包含 **Node.js** 和 **Python** 脚本，分别需要以下环境支持：
 
-### Node.js 脚本
-
-* Node.js ≥ 18.x
-* 包管理器：推荐使用 [`pnpm`](https://pnpm.io/zh/installation)
-
-安装依赖命令（需在项目根目录中）：
-
-```bash
-pnpm install
-```
-
-### Python 脚本
-
-* Python ≥ 3.8
-* 推荐使用 [`pip`](https://pip.pypa.io/en/stable/installation/) 安装依赖
-
-安装依赖命令：
-
-```bash
-pip install -r requirements.txt
-```
-
----
-
 ## 🗂️ 目录结构说明
 
 ```bash
