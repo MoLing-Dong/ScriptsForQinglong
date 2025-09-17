@@ -22,8 +22,8 @@ from openai import OpenAI
 import httpx
 from loguru import logger
 
-ZHIPU_API_KEY = env.get_env("ZHIPU_API_KEY")[0]
-ZHIPU_BASE_URL = env.get_env("ZHIPU_BASE_URL")[0]
+AI_API_KEY = env.get_env("AI_API_KEY")[0]
+AI_BASE_URL = env.get_env("AI_BASE_URL")[0]
 
 logger.remove()
 logger.add(
@@ -274,8 +274,8 @@ async def collect_recent_stories_async(
 
 def openai_client(api_key=None, base_url=None) -> Optional[OpenAI]:
     """创建 OpenAI 客户端"""
-    key = api_key or ZHIPU_API_KEY
-    url = base_url or ZHIPU_BASE_URL
+    key = api_key or AI_API_KEY
+    url = base_url or AI_BASE_URL
     if not key or len(key) < 10:
         logger.warning("API Key 无效或过短")
         return None
@@ -446,7 +446,7 @@ async def main_async(
     logger.info("=" * 60)
     logger.info("【步骤2】开始 AI 总结评论")
     logger.info("=" * 60)
-    summarized_stories = await batch_ai_summarize_async(stories, ZHIPU_API_KEY, model)
+    summarized_stories = await batch_ai_summarize_async(stories, AI_API_KEY, model)
 
     # 步骤3：生成报告
     logger.info("=" * 60)

@@ -20,8 +20,8 @@ from bs4 import BeautifulSoup
 from fake_useragent import UserAgent
 from loguru import logger
 # 导入配置
-ZHIPU_API_KEY = env.get_env("ZHIPU_API_KEY")[0]
-ZHIPU_BASE_URL = env.get_env("ZHIPU_BASE_URL")[0]
+AI_API_KEY = env.get_env("AI_API_KEY")[0]
+AI_BASE_URL = env.get_env("AI_BASE_URL")[0]
 # 设置日志
 logger.remove()  # 移除默认处理器
 logger.add(
@@ -528,8 +528,8 @@ def openai_client(
     """创建 OpenAI 客户端（AI 总结的前置准备）"""
 
     # 优先使用传入的 api_key，然后使用配置文件中的，最后使用环境变量
-    final_api_key = api_key or ZHIPU_API_KEY
-    final_base_url = base_url or ZHIPU_BASE_URL
+    final_api_key = api_key or AI_API_KEY
+    final_base_url = base_url or AI_BASE_URL
 
     try:
         return OpenAI(api_key=final_api_key, base_url=final_base_url)
@@ -775,7 +775,7 @@ def main():
         logger.info("=" * 50)
         logger.info("步骤2：开始 AI 总结文章（同步模式）")
         logger.info("=" * 50)
-        summarized_articles = batch_ai_summarize(articles, ZHIPU_API_KEY, model)
+        summarized_articles = batch_ai_summarize(articles, AI_API_KEY, model)
 
         # 3. 生成 Markdown 报告
         logger.info("=" * 50)
@@ -807,7 +807,7 @@ async def main_async(hours, max_articles, model):
     logger.info("=" * 50)
     logger.info("步骤2：开始 AI 总结文章（异步并发模式）")
     logger.info("=" * 50)
-    summarized_articles = await batch_ai_summarize_async(articles, ZHIPU_API_KEY, model)
+    summarized_articles = await batch_ai_summarize_async(articles, AI_API_KEY, model)
 
     # 3. 生成 Markdown 报告
     logger.info("=" * 50)
