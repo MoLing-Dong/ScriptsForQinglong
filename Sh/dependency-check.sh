@@ -311,10 +311,20 @@ if [ -s "$PYTHON_PACKAGES_FILE" ] || [ -s "$NODEJS_PACKAGES_FILE" ]; then
         js_success_count=0
         js_total_count=$(wc -l < "$NODEJS_TO_INSTALL")
         
+        # 切换到青龙脚本目录
+        cd /ql/scripts 2>/dev/null || cd /ql 2>/dev/null || true
+        
         while IFS= read -r package; do
             echo "正在安装 $package..."
-            if pnpm install "$package" >/dev/null 2>&1; then
-                echo "✓ $package 安装成功"
+            # 尝试多种安装方式
+            if pnpm add "$package" >/dev/null 2>&1; then
+                echo "✓ $package 安装成功 (pnpm add)"
+                ((js_success_count++))
+            elif npm install "$package" >/dev/null 2>&1; then
+                echo "✓ $package 安装成功 (npm install)"
+                ((js_success_count++))
+            elif pnpm install -g "$package" >/dev/null 2>&1; then
+                echo "✓ $package 安装成功 (pnpm global)"
                 ((js_success_count++))
             else
                 echo "✗ $package 安装失败"
