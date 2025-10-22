@@ -24,7 +24,6 @@ import utils.pyEnv as env
 
 # 日志配置
 logger.remove()
-logger.add("./log/musician_api.log", rotation="50 MB", level="DEBUG")
 logger.add(lambda msg: print(msg, end=""), format="{message}", level="INFO")
 
 # 请求头配置
