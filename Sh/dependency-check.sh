@@ -270,9 +270,18 @@ if [ -s "$PYTHON_PACKAGES_FILE" ] || [ -s "$NODEJS_PACKAGES_FILE" ]; then
         done < "$NODEJS_PACKAGES_FILE"
     fi
     
+    # 保存当前工作目录
+    ORIGINAL_DIR=$(pwd)
+    QL_SCRIPTS_DIR="/ql/scripts"
+    
     # 安装Python包
     if [ -s "$PYTHON_TO_INSTALL" ]; then
         echo -e "\n安装Python包..."
+        echo "📍 安装位置: Python全局环境 (pip3)"
+        
+        # 确保在根目录执行，避免受当前目录影响
+        cd / 2>/dev/null || cd "$ORIGINAL_DIR"
+        
         failed_packages=()
         success_count=0
         total_count=$(wc -l < "$PYTHON_TO_INSTALL")
@@ -285,19 +294,23 @@ if [ -s "$PYTHON_PACKAGES_FILE" ] || [ -s "$NODEJS_PACKAGES_FILE" ]; then
                 echo "📦 $package -> $install_package (使用映射包名)"
             fi
             
-            echo "正在安装 $install_package..."
-            if pip3 install "$install_package" >/dev/null 2>&1; then
-                echo "✓ $install_package 安装成功"
+            echo "正在安装 $install_package (Python包)..."
+            # 使用 --user 或全局安装，明确指定是Python包
+            if pip3 install --user "$install_package" >/dev/null 2>&1; then
+                echo "✓ $install_package 安装成功 (Python全局环境)"
+                ((success_count++))
+            elif pip3 install "$install_package" >/dev/null 2>&1; then
+                echo "✓ $install_package 安装成功 (Python系统环境)"
                 ((success_count++))
             else
-                echo "✗ $install_package 安装失败"
+                echo "✗ $install_package 安装失败 (Python包)"
                 failed_packages+=("$package")
             fi
         done < "$PYTHON_TO_INSTALL"
         
         echo "📊 Python包安装统计: 成功 $success_count/$total_count"
         if [ ${#failed_packages[@]} -gt 0 ]; then
-            echo "❌ 安装失败的包: ${failed_packages[*]}"
+            echo "❌ 安装失败的Python包: ${failed_packages[*]}"
             echo "💡 建议手动检查这些包名或尝试其他安装方式"
         fi
     else
@@ -307,61 +320,95 @@ if [ -s "$PYTHON_PACKAGES_FILE" ] || [ -s "$NODEJS_PACKAGES_FILE" ]; then
     # 安装Node.js包
     if [ -s "$NODEJS_TO_INSTALL" ]; then
         echo -e "\n安装Node.js包..."
+        echo "📍 安装位置: Node.js项目目录 (/ql/scripts)"
+        
+        # 切换到青龙脚本目录（Node.js包应该安装在这里）
+        QL_SCRIPTS_DIR="/ql/scripts"
+        if [ -d "$QL_SCRIPTS_DIR" ]; then
+            cd "$QL_SCRIPTS_DIR" || cd "$ORIGINAL_DIR"
+            echo "✓ 已切换到: $(pwd)"
+        else
+            # 如果不存在，尝试其他可能的位置
+            if [ -d "/ql" ]; then
+                cd /ql || cd "$ORIGINAL_DIR"
+                echo "✓ 已切换到: $(pwd)"
+            else
+                echo "⚠️  未找到青龙目录，在当前目录安装: $(pwd)"
+            fi
+        fi
+        
         failed_js_packages=()
         js_success_count=0
         js_total_count=$(wc -l < "$NODEJS_TO_INSTALL")
         
-        # 切换到青龙脚本目录
-        cd /ql/scripts 2>/dev/null || cd /ql 2>/dev/null || true
-        
         while IFS= read -r package; do
-            echo "正在安装 $package..."
-            # 尝试多种安装方式
-            if pnpm add "$package" >/dev/null 2>&1; then
-                echo "✓ $package 安装成功 (pnpm add)"
+            echo "正在安装 $package (Node.js包)..."
+            # 尝试多种安装方式，明确是Node.js包
+            if command -v pnpm >/dev/null 2>&1 && pnpm add "$package" >/dev/null 2>&1; then
+                echo "✓ $package 安装成功 (Node.js - pnpm add)"
                 ((js_success_count++))
-            elif npm install "$package" >/dev/null 2>&1; then
-                echo "✓ $package 安装成功 (npm install)"
+            elif command -v npm >/dev/null 2>&1 && npm install "$package" >/dev/null 2>&1; then
+                echo "✓ $package 安装成功 (Node.js - npm install)"
                 ((js_success_count++))
-            elif pnpm install -g "$package" >/dev/null 2>&1; then
-                echo "✓ $package 安装成功 (pnpm global)"
+            elif command -v pnpm >/dev/null 2>&1 && pnpm install -g "$package" >/dev/null 2>&1; then
+                echo "✓ $package 安装成功 (Node.js - pnpm global)"
                 ((js_success_count++))
             else
-                echo "✗ $package 安装失败"
+                echo "✗ $package 安装失败 (Node.js包)"
                 failed_js_packages+=("$package")
             fi
         done < "$NODEJS_TO_INSTALL"
         
         echo "📊 Node.js包安装统计: 成功 $js_success_count/$js_total_count"
         if [ ${#failed_js_packages[@]} -gt 0 ]; then
-            echo "❌ 安装失败的包: ${failed_js_packages[*]}"
+            echo "❌ 安装失败的Node.js包: ${failed_js_packages[*]}"
         fi
+        
+        # 恢复原始目录
+        cd "$ORIGINAL_DIR" 2>/dev/null || true
     else
         echo -e "\n✓ 所有Node.js包已安装"
     fi
     
+    # 恢复原始工作目录
+    cd "$ORIGINAL_DIR" 2>/dev/null || true
+    
     # 安装后验证
     echo -e "\n=== 安装后验证 ==="
     if [ -s "$PYTHON_TO_INSTALL" ]; then
-        echo "验证Python包..."
+        echo "验证Python包 (使用 python3 -c 'import ...')..."
         while IFS= read -r package; do
-            if python3 -c "import $package" 2>/dev/null; then
-                echo "✅ $package 验证通过"
+            # 检查是否需要映射包名
+            verify_package="$package"
+            if [[ -n "${PYTHON_PACKAGE_MAP[$package]}" ]]; then
+                verify_package="${PYTHON_PACKAGE_MAP[$package]}"
+            fi
+            
+            if python3 -c "import $verify_package" 2>/dev/null; then
+                echo "✅ $package (Python包) 验证通过"
             else
-                echo "❌ $package 验证失败"
+                echo "❌ $package (Python包) 验证失败"
             fi
         done < "$PYTHON_TO_INSTALL"
     fi
     
     if [ -s "$NODEJS_TO_INSTALL" ]; then
-        echo "验证Node.js包..."
+        echo "验证Node.js包 (使用 node -e 'require(...)')..."
+        # 切换到Node.js项目目录进行验证
+        if [ -d "$QL_SCRIPTS_DIR" ]; then
+            cd "$QL_SCRIPTS_DIR" 2>/dev/null || true
+        fi
+        
         while IFS= read -r package; do
             if node -e "require('$package')" 2>/dev/null; then
-                echo "✅ $package 验证通过"
+                echo "✅ $package (Node.js包) 验证通过"
             else
-                echo "❌ $package 验证失败"
+                echo "❌ $package (Node.js包) 验证失败"
             fi
         done < "$NODEJS_TO_INSTALL"
+        
+        # 恢复目录
+        cd "$ORIGINAL_DIR" 2>/dev/null || true
     fi
     
     # 最终失败包汇总
